@@ -12,6 +12,7 @@ import subprocess
 import sys
 import typer
 from datetime import datetime, timedelta
+import tempfile
 
 BASE_URL = "https://xkcd.com"
 ARCHIVE_ENDPOINT = "/archive/"
@@ -21,6 +22,7 @@ app = typer.Typer()
 
 CACHE_DIR = Path("~", ".cache", "xkcd-cli").expanduser()
 CACHE_PATH = Path(CACHE_DIR, "cache.json")
+TERM_MAX_WIDTH_CHARS = 80
 
 
 @app.callback()
@@ -215,22 +217,38 @@ def show(
     meta = next(c for c in comics if c.title == choice_title)
     comic = fetch_xkcd_comic(meta)
 
-    typer.echo(typer.style(comic.title, bold=True))
-    if not use_kitty:
-        typer.echo(comic.img_src)
-    else:
-        cmd = [
-            kitty_cmd,
-            "+kitten",
-            "icat",
-            "--align=left",
-            "--scale-up" if kitty_scale_up else None,
-            comic.img_src,
-        ]
-        # Remove any None values to have a list of PathLike objects
-        cmd_filtered: List[os.PathLike] = list(filter(lambda x: x is not None, cmd))
-        subprocess.run(cmd_filtered)
-    typer.echo("\n".join(wrap(comic.subtext, width=80)))
+    wrapped_title = "\n".join(wrap(comic.title, width=TERM_MAX_WIDTH_CHARS))
+    typer.echo(typer.style(wrapped_title, bold=True))
+
+    # Kitty and the alternative method based on xdg-open would support rendering
+    # images directly from an HTTP endpoint but we find it cleaner to download
+    # the file first and serve it from local disk.
+    with tempfile.TemporaryDirectory() as tempdir:
+        r = requests.get(comic.img_src)
+        r.raise_for_status()
+        tmp_img_path = Path(tempdir, str(comic.id) + ".png", stream=True)
+        with open(tmp_img_path, "wb") as f:
+            for chunk in r:
+                f.write(chunk)
+        if not use_kitty:
+            cmd = [
+                "xdg-open",
+                tmp_img_path,
+            ]
+            subprocess.run(cmd, stdout=None, stderr=None)
+        else:
+            cmd = [
+                kitty_cmd,
+                "+kitten",
+                "icat",
+                "--align=left",
+                "--scale-up" if kitty_scale_up else None,
+                tmp_img_path,
+            ]
+            # Remove any None values to have a list of PathLike objects
+            cmd_filtered: List[os.PathLike] = list(filter(lambda x: x is not None, cmd))
+            subprocess.run(cmd_filtered)
+    typer.echo("\n".join(wrap(comic.subtext, width=TERM_MAX_WIDTH_CHARS)))
 
 
 def main():
