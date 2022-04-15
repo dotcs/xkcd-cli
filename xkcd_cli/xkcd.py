@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 
 BASE_URL = "https://xkcd.com"
 ARCHIVE_ENDPOINT = "/archive/"
+# TODO: Found endpoint https://xkcd.com/1234/info.0.json that allows to get rid of whole HTML parsing
 
 app = typer.Typer()
 
@@ -226,6 +227,10 @@ def show(
     typer.echo("\n".join(wrap(comic.subtext, width=80)))
 
 
-if __name__ == "__main__":
+def main():
     setup()
     app()
+
+
+if __name__ == "__main__":
+    main()

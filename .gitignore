@@ -1,2 +1,3 @@
-.pyenv
+.venv
 .vscode
+dist/
