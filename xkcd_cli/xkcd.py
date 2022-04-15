@@ -13,6 +13,7 @@ import sys
 import typer
 from datetime import datetime, timedelta
 import tempfile
+from random import randint
 
 BASE_URL = "https://xkcd.com"
 ARCHIVE_ENDPOINT = "/archive/"
@@ -214,6 +215,7 @@ def show(
         Fetches and renders the latest xkcd without going through a selection first.
         """,
     ),
+    random: bool = typer.Option(False, help="Fetches and renders a random xkcd comic."),
     comic_id: Optional[int] = typer.Option(
         None,
         help="Renders a comic with a certain ID.",
@@ -246,7 +248,9 @@ def show(
         # Bypass cache and read fetched results directly
         comics = fetch_xkcd_archive()
 
-    if latest:
+    if random:
+        meta = comics[randint(0, len(comics))]
+    elif latest:
         meta = comics[0]
     elif comic_id is not None:
         try:
