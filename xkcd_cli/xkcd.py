@@ -3,7 +3,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from subprocess import Popen, PIPE
 from textwrap import wrap
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import json
 import os
 import requests
@@ -171,6 +171,16 @@ def show(
     kitty_scale_up: bool = typer.Option(
         True, help="Scales the image up to max possible width if kitty is being used."
     ),
+    latest: bool = typer.Option(
+        False,
+        help="""\
+        Fetches and renders the latest xkcd without going through a selection first.
+        """,
+    ),
+    comic_id: Optional[int] = typer.Option(
+        None,
+        help="Renders a comic with a certain ID.",
+    ),
     cache: bool = typer.Option(
         True,
         help="""\
@@ -205,16 +215,31 @@ def show(
         # Bypass cache and read fetched results directly
         comics = fetch_xkcd_archive()
 
-    stdout, _ = choice_fzf(fzf_cmd, comics)
-    choice = stdout.decode("UTF-8").strip()
-    try:
-        choice_title = choice.split(":")[1].strip()
-    except IndexError:
-        # Happens if user uses ctrl+c to exit selection
-        typer.echo("Unknown index. Abort.", err=True)
-        sys.exit(1)
+    if latest:
+        meta = comics[0]
+    elif comic_id is not None:
+        try:
+            meta = next(c for c in comics if c.id == comic_id)
+        except StopIteration:
+            typer.echo(
+                f"""\
+Comic with ID {comic_id} is unknown. Sometimes this happens because the cache is \
+outdated. Please use the 'update-cache' command to fetch most recent comics from \
+xkcd upstream.""",
+                err=True,
+            )
+            sys.exit(1)
+    else:
+        stdout, _ = choice_fzf(fzf_cmd, comics)
+        choice = stdout.decode("UTF-8").strip()
+        try:
+            choice_title = choice.split(":")[1].strip()
+        except IndexError:
+            # Happens if user uses ctrl+c to exit selection
+            typer.echo("Unknown index. Abort.", err=True)
+            sys.exit(1)
 
-    meta = next(c for c in comics if c.title == choice_title)
+        meta = next(c for c in comics if c.title == choice_title)
     comic = fetch_xkcd_comic(meta)
 
     wrapped_title = "\n".join(wrap(comic.title, width=TERM_MAX_WIDTH_CHARS))
