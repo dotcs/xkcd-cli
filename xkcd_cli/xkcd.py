@@ -3,7 +3,7 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from subprocess import Popen, PIPE
 from textwrap import wrap
-from typing import List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 import json
 import os
 import requests
@@ -62,6 +62,27 @@ class XkcdComic(XkcdComicMeta):
 
     img_src: str
     subtext: str
+
+
+@dataclass
+class Cache:
+    """
+    Internal representation of all xkcd comics metadata from the official archive.
+    """
+
+    last_updated: datetime
+    comics: List[XkcdComicMeta]
+
+    @classmethod
+    def read(cls, path: Path):
+        content = json.load(open(path))
+        last_updated = datetime.fromisoformat(content["last_updated"])
+        comics = [XkcdComicMeta(**c) for c in content["comics"]]
+        return Cache(last_updated=last_updated, comics=comics)
+
+    def write(self, path: Path):
+        with open(path, "w") as f:
+            f.write(json.dumps(asdict(self), default=str))
 
 
 def fetch_xkcd_archive() -> List[XkcdComicMeta]:
@@ -132,6 +153,22 @@ def choice_fzf(fzf_cmd: Path, comics: List[XkcdComicMeta]) -> Tuple[bytes, bytes
     return stdout, stderr
 
 
+def _update_cache_if_outdated(
+    cache_filename: Path,
+    cache_timeout: timedelta = timedelta(hours=24),
+) -> Cache:
+    """
+    Updates the cache if it is older than the last updated timestamp plus the
+    cache_timeout.
+    """
+    cache = Cache.read(cache_filename)
+    if datetime.utcnow() > (cache.last_updated + cache_timeout):
+        # Transparently create cache for the user if the cache is older than the
+        # cache timeout.
+        cache = update_cache(cache_filename)
+    return cache
+
+
 @app.command()
 def update_cache(
     cache_filename: Path = typer.Option(
@@ -139,16 +176,16 @@ def update_cache(
         writable=True,
         help="Path to the cache file.",
     )
-):
+) -> Cache:
     """
     Updates the cache file by fetching the latest comics from the xkcd archive website.
     """
     dt = datetime.utcnow()
     comics = fetch_xkcd_archive()
 
-    with open(cache_filename, "w") as f:
-        comics_dicts = dict(last_updated=dt, comics=[asdict(c) for c in comics])
-        f.write(json.dumps(comics_dicts, default=str))
+    cache = Cache(last_updated=dt, comics=comics)
+    cache.write(cache_filename)
+    return cache
 
 
 @app.command()
@@ -203,14 +240,8 @@ def show(
             # Transparently create cache for the user if cache does not yet exist.
             update_cache(cache_filename)
 
-        content = json.load(open(cache_filename))
-        last_updated = datetime.fromisoformat(content["last_updated"])
-        if datetime.utcnow() > (last_updated + timedelta(hours=24)):
-            # Transparently create cache for the user if the cache is older than 24h.
-            update_cache(cache_filename)
-            content = json.load(open(cache_filename))
-
-        comics = [XkcdComicMeta(**c) for c in content["comics"]]
+        content = _update_cache_if_outdated(cache_filename)
+        comics = content.comics
     else:
         # Bypass cache and read fetched results directly
         comics = fetch_xkcd_archive()
