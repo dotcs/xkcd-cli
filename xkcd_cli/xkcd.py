@@ -9,6 +9,7 @@ import os
 import requests
 import shutil
 import subprocess
+import sys
 import typer
 from datetime import datetime, timedelta
 
@@ -204,7 +205,12 @@ def show(
 
     stdout, _ = choice_fzf(fzf_cmd, comics)
     choice = stdout.decode("UTF-8").strip()
-    choice_title = choice.split(":")[1].strip()
+    try:
+        choice_title = choice.split(":")[1].strip()
+    except IndexError:
+        # Happens if user uses ctrl+c to exit selection
+        typer.echo("Unknown index. Abort.", err=True)
+        sys.exit(1)
 
     meta = next(c for c in comics if c.title == choice_title)
     comic = fetch_xkcd_comic(meta)
