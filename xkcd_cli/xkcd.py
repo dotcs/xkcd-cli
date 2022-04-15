@@ -278,7 +278,7 @@ xkcd upstream.""",
     comic = fetch_xkcd_comic(meta)
 
     wrapped_title = "\n".join(wrap(comic.title, width=TERM_MAX_WIDTH_CHARS))
-    typer.echo(typer.style(wrapped_title, bold=True))
+    typer.echo(typer.style(wrapped_title, bold=True) + f" ({comic.id})")
 
     # Kitty and the alternative method based on xdg-open would support rendering
     # images directly from an HTTP endpoint but we find it cleaner to download
