@@ -1,29 +1,27 @@
 from bs4 import BeautifulSoup, Tag
 from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta
 from pathlib import Path
+from random import randint
 from subprocess import Popen, PIPE
 from textwrap import wrap
-from typing import Any, Dict, List, Tuple, Optional
+from typing import List, Tuple, Optional
 import json
 import os
 import requests
 import shutil
 import subprocess
 import sys
-import typer
-from datetime import datetime, timedelta
 import tempfile
-from random import randint
+import typer
 
 BASE_URL = "https://xkcd.com"
 ARCHIVE_ENDPOINT = "/archive/"
-# TODO: Found endpoint https://xkcd.com/1234/info.0.json that allows to get rid of whole HTML parsing
-
-app = typer.Typer()
-
 CACHE_DIR = Path("~", ".cache", "xkcd-cli").expanduser()
 CACHE_PATH = Path(CACHE_DIR, "cache.json")
 TERM_MAX_WIDTH_CHARS = 80
+
+app = typer.Typer()
 
 
 @app.callback()
