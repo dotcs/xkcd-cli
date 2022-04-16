@@ -164,7 +164,20 @@ def _update_cache_if_outdated(
     if datetime.utcnow() > (cache.last_updated + cache_timeout):
         # Transparently create cache for the user if the cache is older than the
         # cache timeout.
-        cache = update_cache(cache_filename)
+        cache = _update_cache(cache_filename)
+    return cache
+
+
+def _update_cache(cache_filename: Path) -> Cache:
+    """
+    Updates the cache by fetching all comics from the xkcd archive page and
+    updating the cache file on disk.
+    """
+    dt = datetime.utcnow()
+    comics = fetch_xkcd_archive()
+
+    cache = Cache(last_updated=dt, comics=comics)
+    cache.write(cache_filename)
     return cache
 
 
@@ -175,16 +188,12 @@ def update_cache(
         writable=True,
         help="Path to the cache file.",
     )
-) -> Cache:
+):
     """
     Updates the cache file by fetching the latest comics from the xkcd archive website.
     """
-    dt = datetime.utcnow()
-    comics = fetch_xkcd_archive()
-
-    cache = Cache(last_updated=dt, comics=comics)
-    cache.write(cache_filename)
-    return cache
+    _update_cache(cache_filename)
+    typer.echo("Cache updated 👍")
 
 
 @app.command()
@@ -238,7 +247,7 @@ def show(
     if cache:
         if not cache_filename.exists():
             # Transparently create cache for the user if cache does not yet exist.
-            update_cache(cache_filename)
+            _update_cache(cache_filename)
 
         content = _update_cache_if_outdated(cache_filename)
         comics = content.comics
