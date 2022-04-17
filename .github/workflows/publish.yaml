@@ -1,0 +1,22 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:  
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+      - name: Install poetry
+        run: pip install poetry
+      - name: Build with poetry
+        run: poetry build
+      - name: Publish
+        run: poetry publish --username __token__ --password ${{ secrets.PYPI_TOKEN }}
