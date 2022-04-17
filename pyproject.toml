@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dcs-xkcd-cli"
-version = "0.1.1"
+version = "1.0.0"
 description = "Get your daily dose of xkcd directly from the terminal! 🤩"
 authors = ["dotcs <repositories@dotcs.me>"]
 readme = "Readme.md"
