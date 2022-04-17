@@ -1,8 +1,12 @@
 [tool.poetry]
-name = "xkcd-cli"
+name = "dcs-xkcd-cli"
 version = "0.1.0"
-description = ""
+description = "Get your daily dose of xkcd directly from the terminal! 🤩"
 authors = ["dotcs <repositories@dotcs.me>"]
+
+packages = [
+    {include = "xkcd_cli"}
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
