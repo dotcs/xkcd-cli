@@ -1,9 +1,9 @@
 name: Publish
 
-on: push
-  # push:
-  #   tags:
-  #     - '*'
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:  
   build:
@@ -18,5 +18,5 @@ jobs:
         run: pip install poetry
       - name: Build with poetry
         run: poetry build
-      # - name: Publish
-      #   run: poetry publish --username ${{ secrets.username }} --password ${{ secrets.password }}
+      - name: Publish
+        run: poetry publish --username __token__ --password ${{ secrets.PYPI_TOKEN }}
