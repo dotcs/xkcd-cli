@@ -10,11 +10,29 @@ This tool requires [fzf] to be installed on the machine to filter available comi
 
 ## Installation
 
+### With pip
+
 Install this package directly from the [Python Package Index (PyPI)][pypi-repo].
 The CLI tool requires Python >= 3.8 to be installed.
 
 ```console
 $ pip install dcs-xkcd-cli
+```
+
+This will install a CLI tool named `xkcd` which can be used as described below.
+
+### With pipx
+
+Installation with [pipx] is similar to the pip variant above, but uses `pipx` instead of `pip`.
+
+```console
+$ pipx install dcs-xkcd-cli
+```
+
+Note that with pipx, this package can be tried out without the need to install it permanently.
+
+```console
+$ pipx run dcs-xkcd-cli <args>
 ```
 
 
@@ -82,3 +100,4 @@ $ xkcd update-cache
 [munroe]: https://en.wikipedia.org/wiki/Randall_Munroe
 [explain-xkcd-categories]: https://www.explainxkcd.com/wiki/index.php/Category:Comics_by_topic
 [pypi-repo]: https://pypi.org/project/dcs-xkcd-cli/
+[pipx]: https://pypa.github.io/pipx/
