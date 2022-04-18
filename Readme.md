@@ -2,6 +2,8 @@
 
 Get your daily dose of [xkcd] directly from the terminal! 🤩
 
+https://user-images.githubusercontent.com/3976183/163873282-f586f312-2643-4b77-af79-89e344091b2f.mp4
+
 [xkcd] is a webcomic created by [Randall Munroe][munroe]. 
 It is a comic of Language, Math, Romance and Sarcasm and a [couple of other categories][explain-xkcd-categories].
 
