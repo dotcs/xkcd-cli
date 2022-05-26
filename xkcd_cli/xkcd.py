@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import typer
+from iv import IV
 
 BASE_URL = "https://xkcd.com"
 ARCHIVE_ENDPOINT = "/archive/"
@@ -198,8 +199,8 @@ def update_cache(
 
 @app.command()
 def show(
-    use_kitty: bool = typer.Option(
-        "kitty" in os.getenv("TERM", "").lower(),
+    terminal_graphics: bool = typer.Option(
+        True,
         help=(
             "Defines if the output will be optimized for the kitty terminal by "
             "rendering the image in the terminal window"
@@ -208,10 +209,6 @@ def show(
     fzf_cmd: Path = typer.Option(
         shutil.which("fzf") or os.getenv("FZF_CMD"),
         help="Path to the fzf tool",
-    ),
-    kitty_cmd: Path = typer.Option(
-        shutil.which("kitty") or os.getenv("KITTY_CMD"),
-        help="Path to the kitty terminal",
     ),
     kitty_scale_up: bool = typer.Option(
         True, help="Scales the image up to max possible width if kitty is being used."
@@ -244,6 +241,10 @@ def show(
     """
     Show an individual xkcd comic.
     """
+    if terminal_graphics:
+        iv = IV("auto")
+        if not iv.protocol:
+            terminal_graphics = False
     if cache:
         if not cache_filename.exists():
             # Transparently create cache for the user if cache does not yet exist.
@@ -297,24 +298,14 @@ xkcd upstream.""",
         with open(tmp_img_path, "wb") as f:
             for chunk in r:
                 f.write(chunk)
-        if not use_kitty:
+        if terminal_graphics:
+            iv.show_image(str(tmp_img_path), newline=True, fitwidth=True, upscale=kitty_scale_up)
+        else:
             cmd = [
                 "xdg-open",
                 tmp_img_path,
             ]
             subprocess.run(cmd, stdout=None, stderr=None)
-        else:
-            cmd = [
-                kitty_cmd,
-                "+kitten",
-                "icat",
-                "--align=left",
-                "--scale-up" if kitty_scale_up else None,
-                tmp_img_path,
-            ]
-            # Remove any None values to have a list of PathLike objects
-            cmd_filtered: List[os.PathLike] = list(filter(lambda x: x is not None, cmd))
-            subprocess.run(cmd_filtered)
     typer.echo("\n".join(wrap(comic.subtext, width=TERM_MAX_WIDTH_CHARS)))
 
 
