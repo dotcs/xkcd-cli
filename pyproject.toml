@@ -32,3 +32,16 @@ xkcd = "xkcd_cli.xkcd:main"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+include = ["xkcd_cli"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+]
+pythonVersion = "3.8"
+pythonPlatform = "Linux"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
