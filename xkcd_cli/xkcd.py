@@ -299,7 +299,9 @@ xkcd upstream.""",
             for chunk in r:
                 f.write(chunk)
         if terminal_graphics:
-            iv.show_image(str(tmp_img_path), newline=True, fitwidth=True, upscale=kitty_scale_up)
+            iv.show_image(
+                str(tmp_img_path), newline=True, fitwidth=True, upscale=kitty_scale_up
+            )
         else:
             cmd = [
                 "xdg-open",
