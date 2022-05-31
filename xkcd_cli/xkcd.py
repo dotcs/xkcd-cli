@@ -210,8 +210,16 @@ def show(
         shutil.which("fzf") or os.getenv("FZF_CMD"),
         help="Path to the fzf tool",
     ),
+    width: int = typer.Option(
+        -1,
+        help="Defines the target width of the comic when rendered in the terminal.",
+    ),
     kitty_scale_up: bool = typer.Option(
-        True, help="Scales the image up to max possible width if kitty is being used."
+        True,
+        help="""\
+        Scales the image up to max possible width if kitty is being used. Does
+        not have any effect if 'width' is set to an explicit value.
+        """,
     ),
     latest: bool = typer.Option(
         False,
@@ -300,9 +308,16 @@ xkcd upstream.""",
             for chunk in r:
                 f.write(chunk)
         if terminal_graphics:
-            assert iv is not None
+            assert iv is not None  # safe since iv has been initialized above
+            upscale = (
+                False if width > 0 else kitty_scale_up
+            )  # disable upscale if explicit width has been set by user
             iv.show_image(
-                str(tmp_img_path), newline=True, fitwidth=True, upscale=kitty_scale_up
+                str(tmp_img_path),
+                w=width,
+                newline=True,
+                fitheight=True,
+                upscale=upscale,
             )
         else:
             cmd = [
