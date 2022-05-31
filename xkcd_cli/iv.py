@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 import sys
 import termios
-import tty
 import atexit
 from select import select
 from base64 import standard_b64encode
-from typing import Literal, NewType, Optional, Set, Tuple, Union
+from typing import Literal, Optional, Set, Tuple, Union
 
 Protocol = Union[
     Literal["iterm"], Literal["kitty"], Literal["kitty+"], Literal["sixel"]
