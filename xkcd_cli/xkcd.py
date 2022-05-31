@@ -33,8 +33,8 @@ def callback():
     This tool fetches xkcd comics from upstream and allows users to grep a comic
     by selecting it in the terminal.
 
-    It relies on fzf for fuzzy searching the comic titles and kitty to render
-    the images in the terminal.
+    It relies on fzf for fuzzy searching the comic titles and a terminal with support
+    for graphics to render the images in the terminal.
     """
     pass
 
@@ -202,9 +202,9 @@ def show(
     terminal_graphics: bool = typer.Option(
         True,
         help=(
-            "Defines if the output will be optimized for the kitty terminal by "
-            "rendering the image in the terminal window"
-        ),
+            "Defines if the output will be displayed in terminal by "
+            "rendering the image in the terminal window if supported."
+            ),
     ),
     fzf_cmd: Path = typer.Option(
         shutil.which("fzf") or os.getenv("FZF_CMD"),
@@ -214,18 +214,18 @@ def show(
         -1,
         help="Defines the target width of the comic when rendered in the terminal.",
     ),
-    kitty_scale_up: bool = typer.Option(
+    terminal_scale_up: bool = typer.Option(
         True,
-        help="""\
-        Scales the image up to max possible width if kitty is being used. Does
-        not have any effect if 'width' is set to an explicit value.
-        """,
+        help=(
+        "Scales the image up to max possible width if terminal graphics is being "
+        "used. Does not have any effect if 'width' is set to an explicit value."
+        ),
     ),
     latest: bool = typer.Option(
         False,
-        help="""\
-        Fetches and renders the latest xkcd without going through a selection first.
-        """,
+        help=(
+        "Fetches and renders the latest xkcd without going through a selection first."
+        ),
     ),
     random: bool = typer.Option(False, help="Fetches and renders a random xkcd comic."),
     comic_id: Optional[int] = typer.Option(
@@ -234,10 +234,11 @@ def show(
     ),
     cache: bool = typer.Option(
         True,
-        help="""\
-        Defines if a cache should be used for listing all available xkcd comics.
-        Otherwise calls the xkcd archive endpoint to gather the list of comics
-        (slower).""",
+        help=(
+        "Defines if a cache should be used for listing all available xkcd "
+        "comics. Otherwise calls the xkcd archive endpoint to gather the list "
+        "of comics (slower)."
+        ),
     ),
     cache_filename: Path = typer.Option(
         CACHE_PATH,
@@ -310,7 +311,7 @@ xkcd upstream.""",
         if terminal_graphics:
             assert iv is not None  # safe since iv has been initialized above
             upscale = (
-                False if width > 0 else kitty_scale_up
+                False if width > 0 else terminal_scale_up
             )  # disable upscale if explicit width has been set by user
             iv.show_image(
                 str(tmp_img_path),
