@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import shutil
 import sys
 import termios
 import atexit
@@ -159,7 +160,7 @@ class IV:
         )
         sys.stdout.flush()
 
-    def sixel_show_file(self, filename: str, w: int = -1, h: int = -1):
+    def sixel_show_file(self, filename: str, w: int = -1, h: int = -1) -> None:
         if self.libsixel is None:
             try:
                 from libsixel import encoder  # type: ignore
@@ -178,7 +179,9 @@ class IV:
                 enc.setopt(self.encoder.SIXEL_OPTFLAG_HEIGHT, str(h))
             enc.setopt(self.encoder.SIXEL_OPTFLAG_COLORS, "256")
             enc.encode(filename)
-        else:
+        elif shutil.which("convert") is not None:
+            # Use imagemagick convert command as a fallback to convert to sixel format.
+            # See also: https://konfou.xyz/posts/sixel-for-terminal-graphics/
             command = ["convert", filename]
             if w > 0:
                 command += ["-geometry", f"{w}x{h}"]
@@ -186,6 +189,8 @@ class IV:
             res = self.subprocess.run(command, stdout=self.subprocess.PIPE)
             sys.stdout.buffer.write(res.stdout)
             sys.stdout.flush()
+        else:
+            print("Could not find an terminal image renderer.")
 
     def show_image(
         self,
