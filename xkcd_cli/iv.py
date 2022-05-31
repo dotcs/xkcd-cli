@@ -12,21 +12,21 @@ Protocol = Union[
 
 
 class IV:
-    protocols: Set[Protocol] = set({"iterm", "kitty", "kitty+", "sixel"})
+    protocols: Set[Protocol] = set(("iterm", "kitty", "kitty+", "sixel"))
     protocol: Optional[Protocol]
     kitty: Optional[bool] = None
     ex_kitty: Optional[bool] = None
     sixel: Optional[bool] = None
     iterm: Optional[bool] = None
 
-    def __init__(self, protocol: Optional[str] = None):
+    def __init__(self, protocol: Optional[Union[Protocol, Literal["auto"]]] = None):
         self.libsixel = None
         self.stdin_fd = sys.stdin.fileno()
         self.saved_term = termios.tcgetattr(self.stdin_fd)
         atexit.register(self.set_normal_term)
         if protocol == "auto":
             self.auto_protocol()
-        elif protocol in ("iterm", "kitty", "kitty+", "sixel"):
+        elif protocol in self.protocols:
             self.protocol = protocol
         else:
             self.protocol = None
