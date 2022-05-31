@@ -250,6 +250,11 @@ class IV:
 
     # Get various sizes of screen
     def pixel_size(self) -> Tuple[int, int]:
+        """
+        Use ANSI escape code to determine the screen dimensions.
+        See also: https://notes.burke.libbey.me/ansi-escape-codes/
+        See also: https://sw.kovidgoyal.net/kitty/graphics-protocol/#getting-the-window-size
+        """
         size_ret = self.terminal_request("\x1b[14t", "t").split(";")
         if len(size_ret) < 3 or not size_ret[0][-1] == "4":
             terminal_width, terminal_height = -1, -1
@@ -258,6 +263,10 @@ class IV:
         return terminal_height, terminal_width
 
     def cell_size(self) -> Tuple[int, int]:
+        """
+        Use ANSI escape code to determine the cell dimensions.
+        See also: https://notes.burke.libbey.me/ansi-escape-codes/
+        """
         size_ret = self.terminal_request("\x1b[16t", "t").split(";")
         if len(size_ret) < 3 or not size_ret[0][-1] == "6":
             cell_width, cell_height = -1, -1
@@ -266,6 +275,10 @@ class IV:
         return cell_height, cell_width
 
     def iterm_cell_size(self) -> Tuple[int, int]:
+        """
+        Use proprietary ANSI escape code to termine cell dimensions in iTerm.
+        See also: https://iterm2.com/documentation-escape-codes.html
+        """
         size_ret = self.terminal_request("\x1b]1337;ReportCellSize\x07", "\x07").split(
             ";"
         )
@@ -286,6 +299,10 @@ class IV:
         return cell_height, cell_width
 
     def terminal_size(self) -> Tuple[int, int]:
+        """
+        Use ANSI escape code to determine the terminal dimensions.
+        See also: https://notes.burke.libbey.me/ansi-escape-codes/
+        """
         size_ret = self.terminal_request("\x1b[18t", "t").split(";")
         if len(size_ret) < 3 or not size_ret[0][-1] == "8":
             terminal_lines, terminal_cols = -1, -1
