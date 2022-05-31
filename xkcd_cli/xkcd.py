@@ -14,7 +14,7 @@ import subprocess
 import sys
 import tempfile
 import typer
-from iv import IV
+from .iv import IV
 
 BASE_URL = "https://xkcd.com"
 ARCHIVE_ENDPOINT = "/archive/"
@@ -241,6 +241,7 @@ def show(
     """
     Show an individual xkcd comic.
     """
+    iv: Optional[IV] = None
     if terminal_graphics:
         iv = IV("auto")
         if not iv.protocol:
@@ -299,6 +300,7 @@ xkcd upstream.""",
             for chunk in r:
                 f.write(chunk)
         if terminal_graphics:
+            assert iv is not None
             iv.show_image(
                 str(tmp_img_path), newline=True, fitwidth=True, upscale=kitty_scale_up
             )

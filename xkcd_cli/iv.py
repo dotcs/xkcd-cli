@@ -5,16 +5,22 @@ import tty
 import atexit
 from select import select
 from base64 import standard_b64encode
+from typing import Literal, NewType, Optional, Set, Tuple, Union
+
+Protocol = Union[
+    Literal["iterm"], Literal["kitty"], Literal["kitty+"], Literal["sixel"]
+]
 
 
 class IV:
-    protocols = set({"iterm", "kitty", "kitty+", "sixel"})
-    kitty = None
-    ex_kitty = None
-    sixel = None
-    iterm = None
+    protocols: Set[Protocol] = set({"iterm", "kitty", "kitty+", "sixel"})
+    protocol: Optional[Protocol]
+    kitty: Optional[bool] = None
+    ex_kitty: Optional[bool] = None
+    sixel: Optional[bool] = None
+    iterm: Optional[bool] = None
 
-    def __init__(self, protocol=None):
+    def __init__(self, protocol: Optional[str] = None):
         self.libsixel = None
         self.stdin_fd = sys.stdin.fileno()
         self.saved_term = termios.tcgetattr(self.stdin_fd)
@@ -24,10 +30,19 @@ class IV:
         elif protocol in ("iterm", "kitty", "kitty+", "sixel"):
             self.protocol = protocol
         else:
-            self.protocol = ""
+            self.protocol = None
 
-    # Utility function which calculates new dimension of image
-    def scale_fit(self, w, h, ow, oh, aspect=True, up=False, debug=False):
+    @staticmethod
+    def scale_fit(
+        w: int,
+        h: int,
+        ow: int,
+        oh: int,
+        aspect: bool = True,
+        up: bool = False,
+        debug: bool = False,
+    ):
+        """Utility function which calculates new dimension of image"""
         if debug:
             print(w, h, ow, oh, aspect)
         a = ow / oh
@@ -57,10 +72,10 @@ class IV:
             return ow, oh
 
     # Send and escape sequence and read reply.
-    def set_normal_term(self):
+    def set_normal_term(self) -> None:
         termios.tcsetattr(self.stdin_fd, termios.TCSAFLUSH, self.saved_term)
 
-    def terminal_request(self, cmd, end):
+    def terminal_request(self, cmd: str, end: str) -> str:
         new_term = termios.tcgetattr(self.stdin_fd)
         new_term[3] = new_term[3] & ~termios.ICANON & ~termios.ECHO
         termios.tcsetattr(self.stdin_fd, termios.TCSAFLUSH, new_term)
@@ -77,11 +92,17 @@ class IV:
         return ret
 
     # Methods to send show image in various protocols.
-    def kitty_remove_placement(self, p=-1):
+    def kitty_remove_placement(self, p: int = -1) -> None:
         sys.stdout.buffer.write(f"\033_Ga=d,i=-1,d=z,z={p},q=2\033\\".encode("ascii"))
         sys.stdout.flush()
 
-    def kitty_show_file(self, data, debug=False, extended=None, **params):
+    def kitty_show_file(
+        self,
+        data: bytes,
+        debug: bool = False,
+        extended: Optional[bool] = None,
+        **params: int,
+    ) -> None:
         if extended or (extended is None and self.ex_kitty):
             data = standard_b64encode(data)
         else:
@@ -120,7 +141,12 @@ class IV:
             sys.stdout.buffer.write(w)
             sys.stdout.flush()
 
-    def iterm_show_file(self, data, debug=False, **params):
+    def iterm_show_file(
+        self,
+        data: bytes,
+        debug: bool = False,
+        **params: int,
+    ):
         data = standard_b64encode(data)
         if debug:
             print(len(data), "bytes", file=sys.stderr)
@@ -134,10 +160,10 @@ class IV:
         )
         sys.stdout.flush()
 
-    def sixel_show_file(self, filename, w=-1, h=-1):
+    def sixel_show_file(self, filename: str, w: int = -1, h: int = -1):
         if self.libsixel is None:
             try:
-                from libsixel import encoder
+                from libsixel import encoder  # type: ignore
 
                 self.encoder = encoder
                 self.libsixel = True
@@ -164,14 +190,14 @@ class IV:
 
     def show_image(
         self,
-        image,
-        w=-1,
-        h=-1,
-        newline=False,
-        fitwidth=False,
-        fitheight=False,
-        upscale=False,
-        **params,
+        image: Union[str, bytes],
+        w: int = -1,
+        h: int = -1,
+        newline: bool = False,
+        fitwidth: bool = False,
+        fitheight: bool = False,
+        upscale: bool = False,
+        **params: int,
     ):
         if self.protocol not in self.protocols:
             return
@@ -180,7 +206,7 @@ class IV:
             _, w = self.pixel_size()
         if fitheight:
             h, _ = self.pixel_size()
-        if type(image) == str:
+        if isinstance(image, str):
             if self.protocol == "sixel":
                 self.sixel_show_file(image, w, h)
             else:
@@ -190,7 +216,7 @@ class IV:
 
                     im = Image.open(image)
                     x, y = im.size
-                    nw, nh = self.scale_fit(w, h, x, y, up=upscale)
+                    nw, nh = IV.scale_fit(w, h, x, y, up=upscale)
                     data = io.BytesIO()
                     im.resize((nw, nh)).save(data, format=im.format)
                     data.seek(0)
@@ -199,27 +225,27 @@ class IV:
                     data = open(image, "rb").read()
                 if self.protocol == "iterm":
                     self.iterm_show_file(data, **params)
-                elif self.protocol.startswith("kitty"):
+                elif self.protocol is not None and self.protocol.startswith("kitty"):
                     self.kitty_show_file(data, **params)
                 if newline:
                     print()
-        else:
+        elif isinstance(image, bytes):
             if self.protocol == "sixel":
                 import tempfile
 
                 file = tempfile.TemporaryFile()
                 file.write(image)
-                self.sixel_show_file(file, w, h)
+                self.sixel_show_file(file.name, w, h)
             else:
                 if self.protocol == "iterm":
                     self.iterm_show_file(image, **params)
-                elif self.protocol.startswith("kitty"):
+                elif self.protocol is not None and self.protocol.startswith("kitty"):
                     self.kitty_show_file(image, **params)
                 if newline:
                     print()
 
     # Get various sizes of screen
-    def pixel_size(self):
+    def pixel_size(self) -> Tuple[int, int]:
         size_ret = self.terminal_request("\x1b[14t", "t").split(";")
         if len(size_ret) < 3 or not size_ret[0][-1] == "4":
             terminal_width, terminal_height = -1, -1
@@ -227,7 +253,7 @@ class IV:
             terminal_height, terminal_width = int(size_ret[1]), int(size_ret[2][:-1])
         return terminal_height, terminal_width
 
-    def cell_size(self):
+    def cell_size(self) -> Tuple[int, int]:
         size_ret = self.terminal_request("\x1b[16t", "t").split(";")
         if len(size_ret) < 3 or not size_ret[0][-1] == "6":
             cell_width, cell_height = -1, -1
@@ -235,7 +261,7 @@ class IV:
             cell_height, cell_width = int(size_ret[1]), int(size_ret[2][:-1])
         return cell_height, cell_width
 
-    def iterm_cell_size(self):
+    def iterm_cell_size(self) -> Tuple[int, int]:
         size_ret = self.terminal_request("\x1b]1337;ReportCellSize\x07", "\x07").split(
             ";"
         )
@@ -255,7 +281,7 @@ class IV:
 
         return cell_height, cell_width
 
-    def terminal_size(self):
+    def terminal_size(self) -> Tuple[int, int]:
         size_ret = self.terminal_request("\x1b[18t", "t").split(";")
         if len(size_ret) < 3 or not size_ret[0][-1] == "8":
             terminal_lines, terminal_cols = -1, -1
@@ -264,19 +290,19 @@ class IV:
         return terminal_lines, terminal_cols
 
     # Identify supported protocols
-    def have_iterm(self):
+    def have_iterm(self) -> bool:
         if self.iterm is None:
             self.iterm = -1 not in self.iterm_cell_size()
         return self.iterm
 
-    def have_kitty(self):
+    def have_kitty(self) -> bool:
         if self.kitty is None:
             self.kitty = "_G" in self.terminal_request(
                 "\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\", "\\"
             )
         return self.kitty
 
-    def have_extended_kitty(self):
+    def have_extended_kitty(self) -> bool:
         if self.ex_kitty is None:
             # A small jpeg from https://stackoverflow.com/questions/2253404
             self.ex_kitty = "OK" in self.terminal_request(
@@ -289,21 +315,21 @@ class IV:
                 self.kitty = True
         return self.ex_kitty
 
-    def have_sixel(self):
+    def have_sixel(self) -> bool:
         if self.sixel is None:
             # reply starts with '\x1b[?' and ends with 'c'
             self.sixel = "4" in self.terminal_request("\x1b[c", "c")[3:-1].split(";")
         return self.sixel
 
-    def auto_protocol(self):
+    def auto_protocol(self) -> Optional[Protocol]:
+        protocol: Optional[Protocol] = None
         if self.have_extended_kitty():
-            self.protocol = "kitty+"
+            protocol = "kitty+"
         elif self.have_iterm():
-            self.protocol = "iterm"
+            protocol = "iterm"
         elif self.have_kitty():
-            self.protocol = "kitty"
+            protocol = "kitty"
         elif self.have_sixel():
-            self.protocol = "sixel"
-        else:
-            self.protocol = "None"
-        return self.protocol
+            protocol = "sixel"
+        self.protocol = protocol
+        return protocol
