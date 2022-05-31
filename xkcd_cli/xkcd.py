@@ -310,15 +310,16 @@ xkcd upstream.""",
                 f.write(chunk)
         if terminal_graphics:
             assert iv is not None  # safe since iv has been initialized above
-            upscale = (
-                False if width > 0 else terminal_scale_up
-            )  # disable upscale if explicit width has been set by user
+            fitscreen = (
+                width <= 0
+            )  # disable fit to screen if explicit width has been set by user
             iv.show_image(
                 str(tmp_img_path),
                 w=width,
                 newline=True,
-                fitheight=True,
-                upscale=upscale,
+                fitwidth=fitscreen,
+                fitheight=fitscreen,
+                upscale=terminal_scale_up,
             )
         else:
             cmd = [
