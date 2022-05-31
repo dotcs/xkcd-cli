@@ -204,7 +204,7 @@ def show(
         help=(
             "Defines if the output will be displayed in terminal by "
             "rendering the image in the terminal window if supported."
-            ),
+        ),
     ),
     fzf_cmd: Path = typer.Option(
         shutil.which("fzf") or os.getenv("FZF_CMD"),
@@ -217,14 +217,14 @@ def show(
     terminal_scale_up: bool = typer.Option(
         True,
         help=(
-        "Scales the image up to max possible width if terminal graphics is being "
-        "used. Does not have any effect if 'width' is set to an explicit value."
+            "Scales the image up to max possible width if terminal graphics is being "
+            "used. Does not have any effect if 'width' is set to an explicit value."
         ),
     ),
     latest: bool = typer.Option(
         False,
         help=(
-        "Fetches and renders the latest xkcd without going through a selection first."
+            "Fetches and renders the latest xkcd without going through a selection first."
         ),
     ),
     random: bool = typer.Option(False, help="Fetches and renders a random xkcd comic."),
@@ -235,9 +235,9 @@ def show(
     cache: bool = typer.Option(
         True,
         help=(
-        "Defines if a cache should be used for listing all available xkcd "
-        "comics. Otherwise calls the xkcd archive endpoint to gather the list "
-        "of comics (slower)."
+            "Defines if a cache should be used for listing all available xkcd "
+            "comics. Otherwise calls the xkcd archive endpoint to gather the list "
+            "of comics (slower)."
         ),
     ),
     cache_filename: Path = typer.Option(
