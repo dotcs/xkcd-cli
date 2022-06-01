@@ -190,8 +190,8 @@ class IV:
             # Use imagemagick convert command as a fallback to convert to sixel format.
             # See also: https://konfou.xyz/posts/sixel-for-terminal-graphics/
             command = ["convert", filename]
-            if w > 0:
-                command += ["-geometry", f"{w}x{h}"]
+            if w > 0 or h > 0:
+                command += ["-geometry", f"{w if w > 0 else ''}x{h if h > 0 else ''}"]
             command += ["sixel:-"]
             res = self.subprocess.run(command, stdout=self.subprocess.PIPE)
             sys.stdout.buffer.write(res.stdout)
