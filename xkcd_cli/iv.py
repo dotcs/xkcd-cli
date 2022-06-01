@@ -93,6 +93,10 @@ class IV:
 
     # Methods to send show image in various protocols.
     def kitty_remove_placement(self, p: int = -1) -> None:
+        """
+        Delete an image.
+        See kitty documentation for details: https://sw.kovidgoyal.net/kitty/graphics-protocol/#deleting-images
+        """
         sys.stdout.buffer.write(f"\033_Ga=d,i=-1,d=z,z={p},q=2\033\\".encode("ascii"))
         sys.stdout.flush()
 
@@ -366,8 +370,9 @@ class IV:
 
     def have_extended_kitty(self) -> bool:
         """
-        Determine if extended support for PNG images (f=100) in kitty is
-        available by sending a 1x1 pixel PNG image.
+        Determine if extended support for JPG images is available.
+        Note that JPG support is implemented by a limited number of terminals,
+        e.g. konsole or wezterm, but not kitty.
 
         This method sets the `ex_kitty` variable, and the `kitty` variable if
         unset, on the currrent instance.
