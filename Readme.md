@@ -7,7 +7,7 @@ https://user-images.githubusercontent.com/3976183/163873282-f586f312-2643-4b77-a
 [xkcd] is a webcomic created by [Randall Munroe][munroe]. 
 It is a comic of Language, Math, Romance and Sarcasm and a [couple of other categories][explain-xkcd-categories].
 
-If [kitty] is used as the terminal, the xkcd comic will be rendered directly in the terminal, otherwise the default viewer for PNG images is used.
+If [kitty], [iterm] or any terminal that has support for the [sixel] file format is used as the terminal, the xkcd comic will be rendered directly in the terminal, otherwise the default viewer for PNG images is used.
 This tool requires [fzf] to be installed on the machine to filter available comics by their title. 
 
 ## Installation
@@ -66,17 +66,25 @@ $ xkcd show --random
 $ xkcd show --comic-id 207
 ```
 
-### Enforce render optimizations for kitty terminal
+### Upscaling / width of comics
+
+By default images are upscaled to match the terminal dimensions.
+This behavior can be controlled with the `--terminal-scale-up / --no-terminal-scale-up` options.
+Images can be also rendered with an explicit width by using the `--width` CLI option.
 
 ```console
-$ xkcd show --use-kitty
+$ xkcd show --comic-id 207 --no-terminal-scale-up    # disable scaling
+$ xkcd show --comic-id 207 --width 1200              # set explicit width
 ```
 
-Use this command if the auto-detection of the kitty terminal does not work as expected.
-Kitty is auto-detected by inspecting if the `$TERM` variable includes the term `kitty`.
 
-By default the image is upscaled to the terminal width.
-Use the `--no-kitty-scale-up` flag to disable this feature if needed.
+### Disable rendering in terminals
+
+```console
+$ xkcd show --no-terminal-graphics
+```
+
+This command will disable the automatic image protocol detection and directly open the image with the help of `xdg-open` in the default image viewer.
 
 ### Disable or update cache
 
@@ -103,3 +111,5 @@ $ xkcd update-cache
 [explain-xkcd-categories]: https://www.explainxkcd.com/wiki/index.php/Category:Comics_by_topic
 [pypi-repo]: https://pypi.org/project/dcs-xkcd-cli/
 [pipx]: https://pypa.github.io/pipx/
+[iterm]: https://iterm2.com/
+[sixel]: https://en.wikipedia.org/wiki/Sixel
