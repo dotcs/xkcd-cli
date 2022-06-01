@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Removed CLI option `--use-kitty` in favor of `--terminal-graphics`.
+- Removed CLI option `--kitty-scale-up` in favor of `--terminal-scale-up`.
 
 
 ## [1.0.0] - 2022-04-17
