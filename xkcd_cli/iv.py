@@ -203,6 +203,23 @@ class IV:
         upscale: bool = False,
         **params: int,
     ):
+        """
+        Display an image in the current terminal instance.
+
+        Uses the following logic:
+        1. If `fitwidth` then scale the image (keeping aspect ratio) so it is as
+           wide as the terminal.
+        2. If `fitheight` then scale the image (keeping aspect ratio) so it is as
+            high as the terminal.
+        3. If both are given uses the smaller scale of the above.
+        4. Otherwise: If `w` is positive, scale the image (keeping aspect ratio)
+           to the given width.
+        5. If `h` is positive, scale the image (keeping aspect ratio) to the given
+           height.
+        6. If both are given uses the smaller scale of the above
+        7. In all cases if the scaling factor is larger than 1, it is applied
+           only if `upscale` is true.
+        """
         if self.protocol not in self.protocols:
             return
         params = {}
@@ -312,11 +329,26 @@ class IV:
 
     # Identify supported protocols
     def have_iterm(self) -> bool:
+        """
+        Identify if the current terminal is an `iterm` terminal instance by
+        running a proprietary command that only works on those terminals.
+
+        This method sets the `iterm` variable on the current instance.
+        """
         if self.iterm is None:
             self.iterm = -1 not in self.iterm_cell_size()
         return self.iterm
 
     def have_kitty(self) -> bool:
+        """
+        Identify if the current terminal is a `kitty` terminal instance by
+        sending a sample 24-bit RGB image with dimensions 1x1 (params s, v) in
+        query action mode (a=q).
+
+        This method sets the `kitty` variable on the current instance.
+
+        See also: https://sw.kovidgoyal.net/kitty/graphics-protocol/?highlight=image#querying-support-and-available-transmission-mediums
+        """
         if self.kitty is None:
             self.kitty = "_G" in self.terminal_request(
                 "\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\", "\\"
@@ -324,6 +356,13 @@ class IV:
         return self.kitty
 
     def have_extended_kitty(self) -> bool:
+        """
+        Determine if extended support for PNG images (f=100) in kitty is
+        available by sending a 1x1 pixel PNG image.
+
+        This method sets the `ex_kitty` variable, and the `kitty` variable if
+        unset, on the currrent instance.
+        """
         if self.ex_kitty is None:
             # A small jpeg from https://stackoverflow.com/questions/2253404
             self.ex_kitty = "OK" in self.terminal_request(
@@ -337,12 +376,24 @@ class IV:
         return self.ex_kitty
 
     def have_sixel(self) -> bool:
+        """
+        Determine if sixel support is available in the current terminal instance
+        through ANSI escape code.
+
+        This method sets the `sixel` variable on the current instance.
+        """
         if self.sixel is None:
             # reply starts with '\x1b[?' and ends with 'c'
             self.sixel = "4" in self.terminal_request("\x1b[c", "c")[3:-1].split(";")
         return self.sixel
 
     def auto_protocol(self) -> Optional[Protocol]:
+        """
+        Automatically detect the terminal image protocol by testing various
+        methods on-the-fly.
+
+        This method sets the `protocol` variable on the current instance.
+        """
         protocol: Optional[Protocol] = None
         if self.have_extended_kitty():
             protocol = "kitty+"
