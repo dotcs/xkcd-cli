@@ -231,9 +231,9 @@ class IV:
             return
         params = {}
         if fitwidth:
-            _, w = self.pixel_size()
+            _, w = self.terminal_pixel_size()
         if fitheight:
-            h, _ = self.pixel_size()
+            h, _ = self.terminal_pixel_size()
         if isinstance(image, str):
             if self.protocol == "sixel":
                 self.sixel_show_file(image, w, h)
@@ -273,9 +273,10 @@ class IV:
                     print()
 
     # Get various sizes of screen
-    def pixel_size(self) -> Tuple[int, int]:
+    def terminal_pixel_size(self) -> Tuple[int, int]:
         """
-        Use ANSI escape code to determine the screen dimensions.
+        Use ANSI escape code to determine the terminal screen dimensions in
+        pixels of the area that may be covered by graphics.
         See also: https://notes.burke.libbey.me/ansi-escape-codes/
         See also: https://sw.kovidgoyal.net/kitty/graphics-protocol/#getting-the-window-size
         """
@@ -322,9 +323,10 @@ class IV:
 
         return cell_height, cell_width
 
-    def terminal_size(self) -> Tuple[int, int]:
+    def terminal_cell_size(self) -> Tuple[int, int]:
         """
-        Use ANSI escape code to determine the terminal dimensions.
+        Use ANSI escape code to determine the terminal dimensions as number of
+        lines and columns.
         See also: https://notes.burke.libbey.me/ansi-escape-codes/
         """
         size_ret = self.terminal_request("\x1b[18t", "t").split(";")
