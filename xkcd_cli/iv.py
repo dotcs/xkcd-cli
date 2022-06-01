@@ -114,29 +114,36 @@ class IV:
                 data = standard_b64encode(data)
             else:
                 data = standard_b64encode(image.tobytes())
-                params["f"] = 24
+                params["f"] = 24  # 24-bit RGB data
                 params["s"] = image.width
                 params["v"] = image.height
         if debug:
             print(len(data), "bytes", file=sys.stderr)
+
+        # See explanation of kitty control data keys here:
+        # https://sw.kovidgoyal.net/kitty/graphics-protocol/?highlight=image#control-data-reference
         cmd = dict()
-        cmd["a"] = "T"
-        cmd["f"] = 100
-        cmd["q"] = 2
+        cmd["a"] = "T"  # simultaneously transmit and display an image
+        cmd["f"] = 100  # f=100 indicates PNG data
+        cmd["q"] = 2  # Suppress responses from the terminal to this graphics command
         for k in ("C", "p", "i", "z", "a", "f", "q", "s", "v", "c", "r"):
             if k in params:
                 cmd[k] = params[k]
+
+        # Write image to kitty terminal in chunks, `m=1` means there is more
+        # chunked data available.
         first = True
         s = 0
+        chunk_size = 4096
         while s < len(data):
             w = b"\033_G"
             if first:
                 for l, v in cmd.items():
                     w += f"{l}={v},".encode("ascii")
                     first = False
-            s += 4096
+            s += chunk_size
             w += f"m={int(s<len(data))};".encode("ascii")
-            w += data[s - 4096 : s]
+            w += data[s - chunk_size : s]
             w += b"\033\\"
             sys.stdout.buffer.write(w)
             sys.stdout.flush()
