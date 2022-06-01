@@ -1,6 +1,11 @@
 name: "Lint and static code analysis"
 
-on: [push]
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+      - develop
 
 jobs:
   build:
