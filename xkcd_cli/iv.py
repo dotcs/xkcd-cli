@@ -41,7 +41,7 @@ class IV:
         aspect: bool = True,
         up: bool = False,
         debug: bool = False,
-    ):
+    ) -> Tuple[int, int]:
         """Utility function which calculates new dimension of image"""
         if debug:
             print(w, h, ow, oh, aspect)
@@ -73,22 +73,45 @@ class IV:
 
     # Send and escape sequence and read reply.
     def set_normal_term(self) -> None:
+        """
+        Reset the terminal to normal mode.
+        """
         termios.tcsetattr(self.stdin_fd, termios.TCSAFLUSH, self.saved_term)
 
-    def terminal_request(self, cmd: str, end: str) -> str:
+    def set_raw_like_term(self) -> None:
+        """
+        Sets the terminal in raw-like mode (noncanonical mode + nonecho mode).
+
+        See also: https://docs.python.org/3.8/library/termios.html#termios.tcgetattr
+        """
         new_term = termios.tcgetattr(self.stdin_fd)
-        new_term[3] = new_term[3] & ~termios.ICANON & ~termios.ECHO
+        new_term[3] = new_term[3] & ~termios.ICANON & ~termios.ECHO  # lflags
         termios.tcsetattr(self.stdin_fd, termios.TCSAFLUSH, new_term)
-        ret = ""
-        print(cmd, end="", flush=True)
-        dr, _, _ = select([sys.stdin], [], [], 0.2)
-        if dr != []:
-            while True:
-                c = sys.stdin.read(1)
-                ret += c
-                if c in end:
-                    break
-        self.set_normal_term()
+
+    def terminal_request(
+        self, cmd: str, end: str, out=sys.stdout, in_=sys.stdin
+    ) -> str:
+        """
+        In raw-like term, run the `cmd` and read from stdin until the matching
+        `end` character has been found. After executing the command, the command
+        terminal is switched back to normal mode.
+        """
+        try:
+            self.set_raw_like_term()
+            ret = ""
+            out.buffer.write(cmd.encode("ascii"))
+            out.flush()
+            timeout = 0.2  # in seconds
+            dr, _, _ = select([in_], [], [], timeout)  # wait for response on stdin
+            if dr != []:
+                while True:
+                    c = in_.read(1)
+                    ret += c
+                    if c in end:
+                        break
+        finally:
+            # ensure to switch back to normal terminal mode
+            self.set_normal_term()
         return ret
 
     # Methods to send show image in various protocols.
