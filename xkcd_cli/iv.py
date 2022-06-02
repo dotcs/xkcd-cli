@@ -130,6 +130,19 @@ class IV:
         sys.stdout.buffer.write(f"\033_Ga=d,i=-1,d=z,z={p},q=2\033\\".encode("ascii"))
         sys.stdout.flush()
 
+    @staticmethod
+    def image_data_and_metadata(data: bytes) -> Tuple[bytes, Optional[str], int, int]:
+        from PIL import Image
+        import io
+
+        image = Image.open(io.BytesIO(data))
+        if image.format == "PNG":
+            data = standard_b64encode(data)
+        else:
+            data = standard_b64encode(image.tobytes())
+
+        return data, image.format, image.height, image.width
+
     def kitty_show_file(
         self,
         data: bytes,
@@ -138,19 +151,17 @@ class IV:
         **params: int,
     ) -> None:
         if extended or (extended is None and self.ex_kitty):
+            # if rendering JPG data is supported, no additional action is required
             data = standard_b64encode(data)
         else:
-            from PIL import Image
-            import io
-
-            image = Image.open(io.BytesIO(data))
-            if image.format == "PNG":
-                data = standard_b64encode(data)
-            else:
-                data = standard_b64encode(image.tobytes())
+            # if rendering JPG data is not supported, either use PNG directly or
+            # use raw image instead
+            data, img_format, img_height, img_width = IV.image_data_and_metadata(data)
+            if img_format != "PNG":
                 params["f"] = 24  # 24-bit RGB data
-                params["s"] = image.width
-                params["v"] = image.height
+                params["s"] = img_width
+                params["v"] = img_height
+
         if debug:
             print(len(data), "bytes", file=sys.stderr)
 
