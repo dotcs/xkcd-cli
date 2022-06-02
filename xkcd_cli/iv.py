@@ -1,11 +1,12 @@
 #!/usr/bin/python3
+from io import BufferedWriter
 import shutil
 import sys
 import termios
 import atexit
-from select import select
+import select
 from base64 import standard_b64encode
-from typing import Literal, Optional, Set, Tuple, Union
+from typing import BinaryIO, Literal, Optional, Set, TextIO, Tuple, Union
 
 Protocol = Union[
     Literal["iterm"], Literal["kitty"], Literal["kitty+"], Literal["sixel"]
@@ -89,7 +90,11 @@ class IV:
         termios.tcsetattr(self.stdin_fd, termios.TCSAFLUSH, new_term)
 
     def terminal_request(
-        self, cmd: str, end: str, out=sys.stdout, in_=sys.stdin
+        self,
+        cmd: str,
+        end: str,
+        out: BinaryIO = sys.stdout.buffer,
+        in_: TextIO = sys.stdin,
     ) -> str:
         """
         In raw-like term, run the `cmd` and read from stdin until the matching
@@ -99,10 +104,12 @@ class IV:
         try:
             self.set_raw_like_term()
             ret = ""
-            out.buffer.write(cmd.encode("ascii"))
+            out.write(cmd.encode("ascii"))
             out.flush()
             timeout = 0.2  # in seconds
-            dr, _, _ = select([in_], [], [], timeout)  # wait for response on stdin
+            dr, _, _ = select.select(
+                [in_], [], [], timeout
+            )  # wait for response on stdin
             if dr != []:
                 while True:
                     c = in_.read(1)

@@ -1,5 +1,8 @@
+import io
 from typing import Any
 from unittest.mock import Mock, patch
+import unittest
+
 from .iv import IV
 
 
@@ -60,39 +63,139 @@ def test_scale_fit():
         assert IV.scale_fit(**test["params"]) == test["expect"]
 
 
-class TestIvInit:
-    @patch("termios.tcgetattr")
-    @patch("atexit.register")
-    @patch("sys.stdin.fileno")
-    def test_tty_setup(
-        self,
-        mock_sys_stdin_fileno: Mock,
-        mock_atexit_register: Mock,
-        mock_termios_tcgetattr: Mock,
-    ):
-        mock_sys_stdin_fileno.return_value = 1
-        mock_termios_tcgetattr.return_value = [123]
+class IvInitMixin:
+    def setUp(self):
+        super(IvInitMixin, self).setUp()  # type: ignore
+        patcher = patch("termios.tcgetattr", return_value=[])
+        self.mock_termios_tcgetattr = patcher.start()
+        self.addCleanup(patcher.stop)  # type: ignore
+
+        patcher = patch("atexit.register")
+        self.mock_atexit_register = patcher.start()
+        self.addCleanup(patcher.stop)  # type: ignore
+
+        patcher = patch("sys.stdin.fileno", return_value=1)
+        self.mock_sys_stdin_fileno = patcher.start()
+        self.addCleanup(patcher.stop)  # type: ignore
+
+
+class TestIvInit(IvInitMixin, unittest.TestCase):
+    def test_tty_setup(self):
+        self.mock_termios_tcgetattr.return_value = [123]
 
         protocol: Any = "foobar"
         iv = IV(protocol)
 
-        mock_atexit_register.assert_called_once()
+        self.mock_atexit_register.assert_called_once()
         assert iv.libsixel is None
         assert iv.stdin_fd == 1
         assert iv.saved_term == [123]
 
-    @patch("termios.tcgetattr")
-    @patch("atexit.register")
-    @patch("sys.stdin.fileno")
-    def test_unknown_protocol(
-        self,
-        mock_sys_stdin_fileno: Mock,
-        mock_atexit_register: Mock,
-        mock_termios_tcgetattr: Mock,
-    ):
-        mock_sys_stdin_fileno.return_value = 1
-        mock_termios_tcgetattr.return_value = []
-
+    def test_unknown_protocol(self):
         protocol: Any = "foobar"
         iv = IV(protocol)
         assert iv.protocol is None
+
+
+class TestTerminalRequest(IvInitMixin, unittest.TestCase):
+    @patch("select.select")
+    def test_happy_path(
+        self,
+        mock_select: Mock,
+    ):
+        # mock return value of otherwise hard to test function
+        mock_select.return_value = (["OK"], [], [])
+
+        protocol: Any = "foobar"
+        iv = IV(protocol)
+
+        # Mock that will modify terminal behavior. In this test case it is only
+        # important that they are called.
+        iv.set_raw_like_term = Mock()
+        iv.set_normal_term = Mock()
+
+        expected = "some_value_t"
+        out = io.BytesIO()  # mock output to which cmd will be written
+        # mock input from which terminal response will be read
+        in_ = io.StringIO(expected)
+
+        cmd = "\x1b[14t"
+        actual = iv.terminal_request(cmd, "t", out=out, in_=in_)
+
+        out.seek(0)
+        assert out.readline() == cmd.encode("ascii")
+
+        # Ensure that terminal mode has been modified once, first into raw-like
+        # mode, later back into normal mode.
+        iv.set_raw_like_term.assert_called_once()
+        iv.set_normal_term.assert_called_once()
+
+        mock_select.assert_called_once()
+
+        assert actual == expected
+
+
+class TestTerminalPixelSize(IvInitMixin, unittest.TestCase):
+    def test_happy_path(self):
+        protocol: Any = "foobar"
+        iv = IV(protocol)
+
+        iv.terminal_request = Mock(return_value="\x1b[4;1260;2118t")
+
+        height, width = iv.terminal_pixel_size()
+        assert height == 1260
+        assert width == 2118
+
+    def test_escape_code_not_working(self):
+        protocol: Any = "foobar"
+        iv = IV(protocol)
+
+        iv.terminal_request = Mock(return_value="")
+
+        height, width = iv.terminal_pixel_size()
+        assert height == -1
+        assert width == -1
+
+
+class TestCellSize(IvInitMixin, unittest.TestCase):
+    def test_happy_path(self):
+        protocol: Any = "foobar"
+        iv = IV(protocol)
+
+        iv.terminal_request = Mock(return_value="\x1b[6;22;9t")
+
+        height, width = iv.cell_size()
+        assert height == 22
+        assert width == 9
+
+    def test_escape_code_not_working(self):
+        protocol: Any = "foobar"
+        iv = IV(protocol)
+
+        iv.terminal_request = Mock(return_value="")
+
+        height, width = iv.cell_size()
+        assert height == -1
+        assert width == -1
+
+
+class TestTerminalCellSize(IvInitMixin, unittest.TestCase):
+    def test_happy_path(self):
+        protocol: Any = "foobar"
+        iv = IV(protocol)
+
+        iv.terminal_request = Mock(return_value="\x1b[8;56;223t")
+
+        height, width = iv.terminal_cell_size()
+        assert height == 56
+        assert width == 223
+
+    def test_escape_code_not_working(self):
+        protocol: Any = "foobar"
+        iv = IV(protocol)
+
+        iv.terminal_request = Mock(return_value="")
+
+        height, width = iv.terminal_pixel_size()
+        assert height == -1
+        assert width == -1
