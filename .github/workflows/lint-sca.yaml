@@ -35,3 +35,5 @@ jobs:
         run: poetry run python -m black --check --diff .
       - name: Static code analysis
         run: poetry run python -m pyright
+      - name: Run tests
+        run: poetry run python -m pytest
