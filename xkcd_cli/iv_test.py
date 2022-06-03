@@ -1,5 +1,5 @@
 import io
-from typing import Any, List
+from typing import Any, Dict, List
 from unittest import mock
 from unittest.mock import Mock, patch
 import unittest
@@ -312,8 +312,42 @@ class TestShowImage(IvInitMixin, unittest.TestCase):
         assert isinstance(iv.iterm_show_file.call_args[0][0], bytes)
 
 
+class StubLibsixelEncoder:
+    _opts: Dict[str, str] = {}
+    _filename: str = ""
+
+    def setopt(self, name: str, value: str):
+        self._opts[name] = value
+
+    def encode(self, filename: str):
+        self._filename = filename
+
+
 class TestSixelShowFile(IvInitMixin, unittest.TestCase):
     png_sample = Path("tests") / "assets" / "1x1.png"
+
+    def test_libsixel(self):
+        fp = self.png_sample.as_posix()
+        iv = IV("sixel")
+        iv._setup_libsixel_or_fallback = Mock()
+        iv.libsixel = True
+        iv.encoder = Mock()
+        stubEncoder = StubLibsixelEncoder()
+        iv.encoder.configure_mock(
+            **{
+                "Encoder.return_value": stubEncoder,
+                "SIXEL_OPTFLAG_WIDTH": "SIXEL_OPTFLAG_WIDTH",
+                "SIXEL_OPTFLAG_HEIGHT": "SIXEL_OPTFLAG_HEIGHT",
+            }
+        )
+
+        out = io.BytesIO()  # mock output to which response will be written
+
+        iv.sixel_show_file(fp, w=100, h=10, out=out)
+
+        assert stubEncoder._filename == fp
+        assert stubEncoder._opts["SIXEL_OPTFLAG_WIDTH"] == "100"
+        assert stubEncoder._opts["SIXEL_OPTFLAG_HEIGHT"] == "10"
 
     @patch("subprocess.run")
     def test_fallback_imagemagick_convert(self, mock_subp_run: Mock):
