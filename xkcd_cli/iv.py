@@ -233,9 +233,8 @@ class IV:
             self._setup_libsixel_or_fallback()
         if self.libsixel:
             enc = self.encoder.Encoder()
-            if w > 0:
-                enc.setopt(self.encoder.SIXEL_OPTFLAG_WIDTH, str(w))
-                enc.setopt(self.encoder.SIXEL_OPTFLAG_HEIGHT, str(h))
+            enc.setopt(self.encoder.SIXEL_OPTFLAG_WIDTH, str(w) if w > 0 else "auto")
+            enc.setopt(self.encoder.SIXEL_OPTFLAG_HEIGHT, str(h) if h > 0 else "auto")
             enc.setopt(self.encoder.SIXEL_OPTFLAG_COLORS, "256")
             enc.encode(filename)
         elif shutil.which("convert") is not None:
