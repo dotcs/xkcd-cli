@@ -74,13 +74,13 @@ class IV:
             return ow, oh
 
     # Send and escape sequence and read reply.
-    def set_normal_term(self) -> None:
+    def set_normal_term(self) -> None:  # pragma: no cover
         """
         Reset the terminal to normal mode.
         """
         termios.tcsetattr(self.stdin_fd, termios.TCSAFLUSH, self.saved_term)
 
-    def set_raw_like_term(self) -> None:
+    def set_raw_like_term(self) -> None:  # pragma: no cover
         """
         Sets the terminal in raw-like mode (noncanonical mode + nonecho mode).
 
@@ -213,7 +213,7 @@ class IV:
         )
         sys.stdout.flush()
 
-    def _setup_libsixel_or_fallback(self):
+    def _setup_libsixel_or_fallback(self):  # pragma: no cover
         try:
             from libsixel import encoder  # type: ignore
 

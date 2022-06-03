@@ -414,3 +414,30 @@ class TestSixelShowFile(IvInitMixin, unittest.TestCase):
 
         out.seek(0)
         assert b"Could not find" in out.read()
+
+
+class TestImageDataAndMetadata:
+    png_sample = Path("tests") / "assets" / "1x1.png"
+    jpg_sample = Path("tests") / "assets" / "1x1.jpg"
+
+    def test_png_image(self):
+        with open(self.png_sample, "rb") as f:
+            data = f.read()
+
+        ret_data, img_format, img_height, img_width = IV.image_data_and_metadata(data)
+
+        assert ret_data is not None
+        assert img_format == "PNG"
+        assert img_height == 1
+        assert img_width == 1
+
+    def test_jpg_image(self):
+        with open(self.jpg_sample, "rb") as f:
+            data = f.read()
+
+        ret_data, img_format, img_height, img_width = IV.image_data_and_metadata(data)
+
+        assert ret_data is not None
+        assert img_format == "JPEG"
+        assert img_height == 1
+        assert img_width == 1
