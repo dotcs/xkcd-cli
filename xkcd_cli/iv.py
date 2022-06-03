@@ -249,7 +249,8 @@ class IV:
             out.write(res.stdout)
             out.flush()
         else:
-            print("Could not find an terminal image renderer.")
+            out.write("Could not find an terminal image renderer.".encode("ascii"))
+            out.flush()
 
     def show_image(
         self,

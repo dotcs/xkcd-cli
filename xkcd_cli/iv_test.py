@@ -349,8 +349,14 @@ class TestSixelShowFile(IvInitMixin, unittest.TestCase):
         assert stubEncoder._opts["SIXEL_OPTFLAG_WIDTH"] == "100"
         assert stubEncoder._opts["SIXEL_OPTFLAG_HEIGHT"] == "10"
 
+    @patch("shutil.which")
     @patch("subprocess.run")
-    def test_fallback_imagemagick_convert(self, mock_subp_run: Mock):
+    def test_fallback_imagemagick_convert(
+        self,
+        mock_subp_run: Mock,
+        mock_shutil_which: Mock,
+    ):
+        mock_shutil_which.return_value = "/usr/bin/convert"
         fp = self.png_sample.as_posix()
 
         @dataclass
@@ -389,3 +395,22 @@ class TestSixelShowFile(IvInitMixin, unittest.TestCase):
 
             out.seek(0)
             assert out.read() == b"foobar"
+
+    @patch("shutil.which")
+    def test_fallback_failure(
+        self,
+        mock_shutil_which: Mock,
+    ):
+        mock_shutil_which.return_value = None
+
+        fp = self.png_sample.as_posix()
+
+        iv = IV("sixel")
+        iv._setup_libsixel_or_fallback = Mock()
+        iv.libsixel = False
+        out = io.BytesIO()  # mock output to which response will be written
+
+        iv.sixel_show_file(fp, out=out)
+
+        out.seek(0)
+        assert b"Could not find" in out.read()
