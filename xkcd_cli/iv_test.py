@@ -1,9 +1,11 @@
 import io
-from typing import Any
+from typing import Any, List
 from unittest import mock
 from unittest.mock import Mock, patch
 import unittest
 from pathlib import Path
+from dataclasses import dataclass
+import pytest
 
 from .iv import IV
 
@@ -308,3 +310,48 @@ class TestShowImage(IvInitMixin, unittest.TestCase):
 
         iv.iterm_show_file.assert_called_once_with(mock.ANY)
         assert isinstance(iv.iterm_show_file.call_args[0][0], bytes)
+
+
+class TestSixelShowFile(IvInitMixin, unittest.TestCase):
+    png_sample = Path("tests") / "assets" / "1x1.png"
+
+    @patch("subprocess.run")
+    def test_fallback_imagemagick_convert(self, mock_subp_run: Mock):
+        fp = self.png_sample.as_posix()
+
+        @dataclass
+        class TC:
+            """Parameterized test case"""
+
+            w: int
+            h: int
+            expected: List[str]
+
+        tests: List[TC] = [
+            TC(-1, -1, ["convert", fp, "sixel:-"]),
+            TC(100, 10, ["convert", fp, "-geometry", "100x10", "sixel:-"]),
+            TC(100, -1, ["convert", fp, "-geometry", "100x", "sixel:-"]),
+            TC(-1, 10, ["convert", fp, "-geometry", "x10", "sixel:-"]),
+        ]
+
+        @dataclass
+        class SubprocessRunReturnMock:
+            stdout = b"foobar"
+
+        for t_param in tests:
+            iv = IV("sixel")
+            out = io.BytesIO()  # mock output to which response will be written
+            mock_subp_run.reset_mock()
+
+            mock_subp_run.return_value = SubprocessRunReturnMock()
+
+            # mock setup fn to test behavior if libsixel is not found
+            iv._setup_libsixel_or_fallback = Mock()
+            iv.sixel_show_file(fp, w=t_param.w, h=t_param.h, out=out)
+            iv._setup_libsixel_or_fallback.assert_called_once()
+            iv.libsixel = False  # simulate missing libsixel
+
+            mock_subp_run.assert_called_once_with(t_param.expected, stdout=mock.ANY)
+
+            out.seek(0)
+            assert out.read() == b"foobar"

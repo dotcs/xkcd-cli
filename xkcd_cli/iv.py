@@ -7,6 +7,7 @@ import atexit
 import select
 from base64 import standard_b64encode
 from typing import BinaryIO, Literal, Optional, Set, TextIO, Tuple, Union
+import subprocess
 
 Protocol = Union[
     Literal["iterm"], Literal["kitty"], Literal["kitty+"], Literal["sixel"]
@@ -212,18 +213,24 @@ class IV:
         )
         sys.stdout.flush()
 
-    def sixel_show_file(self, filename: str, w: int = -1, h: int = -1) -> None:
+    def _setup_libsixel_or_fallback(self):
+        try:
+            from libsixel import encoder  # type: ignore
+
+            self.encoder = encoder
+            self.libsixel = True
+        except ModuleNotFoundError:
+            self.libsixel = False
+
+    def sixel_show_file(
+        self,
+        filename: str,
+        w: int = -1,
+        h: int = -1,
+        out: BinaryIO = sys.stdout.buffer,
+    ) -> None:
         if self.libsixel is None:
-            try:
-                from libsixel import encoder  # type: ignore
-
-                self.encoder = encoder
-                self.libsixel = True
-            except ModuleNotFoundError:
-                self.libsixel = False
-                import subprocess
-
-                self.subprocess = subprocess
+            self._setup_libsixel_or_fallback()
         if self.libsixel:
             enc = self.encoder.Encoder()
             if w > 0:
@@ -238,9 +245,9 @@ class IV:
             if w > 0 or h > 0:
                 command += ["-geometry", f"{w if w > 0 else ''}x{h if h > 0 else ''}"]
             command += ["sixel:-"]
-            res = self.subprocess.run(command, stdout=self.subprocess.PIPE)
-            sys.stdout.buffer.write(res.stdout)
-            sys.stdout.flush()
+            res = subprocess.run(command, stdout=subprocess.PIPE)
+            out.write(res.stdout)
+            out.flush()
         else:
             print("Could not find an terminal image renderer.")
 
