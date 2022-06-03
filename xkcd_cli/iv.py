@@ -280,42 +280,59 @@ class IV:
         if fitheight:
             h, _ = self.terminal_pixel_size()
         if isinstance(image, str):
-            if self.protocol == "sixel":
-                self.sixel_show_file(image, w, h)
-            else:
-                if w > 0 or h > 0:
-                    from PIL import Image
-                    import io
-
-                    im = Image.open(image)
-                    x, y = im.size
-                    nw, nh = IV.scale_fit(w, h, x, y, up=upscale)
-                    data = io.BytesIO()
-                    im.resize((nw, nh)).save(data, format=im.format)
-                    data.seek(0)
-                    data = data.read()
-                else:
-                    data = open(image, "rb").read()
-                if self.protocol == "iterm":
-                    self.iterm_show_file(data, **params)
-                elif self.protocol is not None and self.protocol.startswith("kitty"):
-                    self.kitty_show_file(data, **params)
-                if newline:
-                    print()
+            self._show_image_str(image, w, h, upscale=upscale, **params)
         elif isinstance(image, bytes):
-            if self.protocol == "sixel":
-                import tempfile
+            self._show_image_bytes(image, w, h, **params)
+        if newline:
+            print()
 
-                file = tempfile.TemporaryFile()
-                file.write(image)
-                self.sixel_show_file(file.name, w, h)
+    def _show_image_str(
+        self,
+        image: str,
+        w: int = -1,
+        h: int = -1,
+        upscale: bool = False,
+        **params: int,
+    ):
+        if self.protocol == "sixel":
+            self.sixel_show_file(image, w, h)
+        else:
+            if w > 0 or h > 0:
+                from PIL import Image
+                import io
+
+                im = Image.open(image)
+                x, y = im.size
+                nw, nh = IV.scale_fit(w, h, x, y, up=upscale)
+                data = io.BytesIO()
+                im.resize((nw, nh)).save(data, format=im.format)
+                data.seek(0)
+                data = data.read()
             else:
-                if self.protocol == "iterm":
-                    self.iterm_show_file(image, **params)
-                elif self.protocol is not None and self.protocol.startswith("kitty"):
-                    self.kitty_show_file(image, **params)
-                if newline:
-                    print()
+                data = open(image, "rb").read()
+            if self.protocol == "iterm":
+                self.iterm_show_file(data, **params)
+            elif self.protocol is not None and self.protocol.startswith("kitty"):
+                self.kitty_show_file(data, **params)
+
+    def _show_image_bytes(
+        self,
+        image: bytes,
+        w: int = -1,
+        h: int = -1,
+        **params: int,
+    ):
+        if self.protocol == "sixel":
+            import tempfile
+
+            file = tempfile.TemporaryFile()
+            file.write(image)
+            self.sixel_show_file(file.name, w, h)
+        else:
+            if self.protocol == "iterm":
+                self.iterm_show_file(image, **params)
+            elif self.protocol is not None and self.protocol.startswith("kitty"):
+                self.kitty_show_file(image, **params)
 
     # Get various sizes of screen
     def terminal_pixel_size(self) -> Tuple[int, int]:

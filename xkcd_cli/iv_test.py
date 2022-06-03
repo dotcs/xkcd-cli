@@ -1,7 +1,9 @@
 import io
 from typing import Any
+from unittest import mock
 from unittest.mock import Mock, patch
 import unittest
+from pathlib import Path
 
 from .iv import IV
 
@@ -199,3 +201,110 @@ class TestTerminalCellSize(IvInitMixin, unittest.TestCase):
         height, width = iv.terminal_pixel_size()
         assert height == -1
         assert width == -1
+
+
+class TestShowImage(IvInitMixin, unittest.TestCase):
+    png_sample = Path("tests") / "assets" / "1x1.png"
+
+    def test_fitwidth(self):
+        iv = IV("kitty")
+
+        iv._show_image_str = Mock()
+        iv._show_image_bytes = Mock()
+        fp = self.png_sample.as_posix()
+        iv.terminal_pixel_size = Mock(return_value=(10, 100))
+        iv.show_image(fp, 1, 1, fitwidth=True)
+
+        iv._show_image_str.assert_called_once_with(fp, 100, 1, upscale=False)
+        iv._show_image_bytes.assert_not_called()
+
+    def test_fitheight(self):
+        iv = IV("kitty")
+
+        iv._show_image_str = Mock()
+        iv._show_image_bytes = Mock()
+        fp = self.png_sample.as_posix()
+        iv.terminal_pixel_size = Mock(return_value=(10, 100))
+        iv.show_image(fp, 1, 1, fitheight=True)
+
+        iv._show_image_str.assert_called_once_with(fp, 1, 10, upscale=False)
+        iv._show_image_bytes.assert_not_called()
+
+    def test_kitty_with_png_bytes(self):
+        iv = IV("kitty")
+
+        with open(self.png_sample, "rb") as f:
+            img_data = f.read()
+
+        iv.kitty_show_file = Mock()
+        iv._show_image_bytes(img_data, 1, 1)
+        iv.kitty_show_file.assert_called_once_with(img_data)
+
+    def test_kitty_with_png_str(self):
+        iv = IV("kitty")
+
+        iv.kitty_show_file = Mock()
+        fp = self.png_sample.as_posix()
+        iv._show_image_str(fp, 1, 1)
+        iv.kitty_show_file.assert_called_once_with(mock.ANY)
+        assert isinstance(iv.kitty_show_file.call_args[0][0], bytes)
+
+    def test_kittyplus_with_png_bytes(self):
+        iv = IV("kitty+")
+
+        with open(self.png_sample, "rb") as f:
+            img_data = f.read()
+
+        iv.kitty_show_file = Mock()
+        iv._show_image_bytes(img_data, 1, 1)
+        iv.kitty_show_file.assert_called_once_with(img_data)
+
+    def test_kittyplus_with_png_str(self):
+        iv = IV("kitty+")
+
+        iv.kitty_show_file = Mock()
+        fp = self.png_sample.as_posix()
+        iv._show_image_str(fp, 1, 1)
+        iv.kitty_show_file.assert_called_once_with(mock.ANY)
+        assert isinstance(iv.kitty_show_file.call_args[0][0], bytes)
+
+    def test_sixel_with_png_bytes(self):
+        iv = IV("sixel")
+
+        with open(self.png_sample, "rb") as f:
+            img_data = f.read()
+
+        iv.sixel_show_file = Mock()
+        iv._show_image_bytes(img_data, 1, 1)
+
+        iv.sixel_show_file.assert_called_once_with(mock.ANY, 1, 1)
+        assert isinstance(iv.sixel_show_file.call_args[0][0], int)
+
+    def test_sixel_with_png_str(self):
+        iv = IV("sixel")
+
+        iv.sixel_show_file = Mock()
+        fp = self.png_sample.as_posix()
+        iv._show_image_str(fp, 1, 1)
+
+        iv.sixel_show_file.assert_called_once_with(fp, 1, 1)
+
+    def test_iterm_with_png_bytes(self):
+        iv = IV("iterm")
+
+        with open(self.png_sample, "rb") as f:
+            img_data = f.read()
+
+        iv.iterm_show_file = Mock()
+        iv._show_image_bytes(img_data, 1, 1)
+        iv.iterm_show_file.assert_called_once_with(img_data)
+
+    def test_iterm_with_png_str(self):
+        iv = IV("iterm")
+
+        iv.iterm_show_file = Mock()
+        fp = self.png_sample.as_posix()
+        iv._show_image_str(fp, 1, 1)
+
+        iv.iterm_show_file.assert_called_once_with(mock.ANY)
+        assert isinstance(iv.iterm_show_file.call_args[0][0], bytes)
