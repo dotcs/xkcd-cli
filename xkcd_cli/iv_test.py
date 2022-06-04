@@ -10,61 +10,39 @@ import pytest
 from .iv import IV
 
 
-def test_scale_fit():
-    tests = [
+@pytest.mark.parametrize(
+    "params,expected",
+    [
         # trivial case, unknown original dimensions
-        {
-            "params": dict(w=100, h=0, ow=-1, oh=-1, aspect=True, up=False),
-            "expect": (-1, -1),
-        },
+        (dict(w=100, h=0, ow=-1, oh=-1, aspect=True, up=False), (-1, -1)),
         # same height, width -> no scaling
-        {
-            "params": dict(w=100, h=10, ow=100, oh=10, aspect=True, up=False),
-            "expect": (100, 10),
-        },
+        (dict(w=100, h=10, ow=100, oh=10, aspect=True, up=False), (100, 10)),
         # 10x larger with disabled upscaling -> don't upscale
-        {
-            "params": dict(w=1000, h=100, ow=100, oh=10, aspect=True, up=False),
-            "expect": (100, 10),
-        },
+        (dict(w=1000, h=100, ow=100, oh=10, aspect=True, up=False), (100, 10)),
         # 2x smaller -> downscale
-        {
-            "params": dict(w=50, h=0, ow=100, oh=10, aspect=True, up=False),
-            "expect": (50, 5),
-        },
+        (dict(w=50, h=0, ow=100, oh=10, aspect=True, up=False), (50, 5)),
         # 2x smaller with no w value -> downscale
-        {
-            "params": dict(w=0, h=5, ow=100, oh=10, aspect=True, up=False),
-            "expect": (50, 5),
-        },
+        (dict(w=0, h=5, ow=100, oh=10, aspect=True, up=False), (50, 5)),
         # 2x smaller with wrong aspect ratio -> downscale
-        {
-            "params": dict(w=50, h=6, ow=100, oh=10, aspect=True, up=False),
-            "expect": (50, 5),
-        },
+        (dict(w=50, h=6, ow=100, oh=10, aspect=True, up=False), (50, 5)),
         # 2x smaller with wrong aspect ratio -> downscale
-        {
-            "params": dict(w=55, h=5, ow=100, oh=10, aspect=True, up=False),
-            "expect": (50, 5),
-        },
+        (dict(w=55, h=5, ow=100, oh=10, aspect=True, up=False), (50, 5)),
         # 10x larger with upscale allowed -> upscale
-        {
-            "params": dict(w=1000, h=100, ow=100, oh=10, aspect=True, up=True),
-            "expect": (1000, 100),
-        },
+        (dict(w=1000, h=100, ow=100, oh=10, aspect=True, up=True), (1000, 100)),
+        # larger with upscale allowed, don't keep aspect -> keep
+        (dict(w=1000, h=50, ow=100, oh=10, aspect=False, up=True), (1000, 50)),
+        # larger with upscale allowed, no target height, don't keep aspect -> keep original h
+        (dict(w=1000, h=-1, ow=100, oh=10, aspect=False, up=True), (1000, 10)),
+        # larger with upscale allowed, no target width, don't keep aspect -> keep original w
+        (dict(w=-1, h=50, ow=100, oh=10, aspect=False, up=True), (100, 50)),
         # 5x larger with upscale allowed and wrong aspect ratio -> upscale and reset height
-        {
-            "params": dict(w=500, h=55, ow=100, oh=10, aspect=True, up=True),
-            "expect": (500, 50),
-        },
+        (dict(w=500, h=55, ow=100, oh=10, aspect=True, up=True), (500, 50)),
         # 5x larger with upscale allowed and wrong aspect ratio -> upscale and reset width
-        {
-            "params": dict(w=550, h=50, ow=100, oh=10, aspect=True, up=True),
-            "expect": (500, 50),
-        },
-    ]
-    for test in tests:
-        assert IV.scale_fit(**test["params"]) == test["expect"]
+        (dict(w=550, h=50, ow=100, oh=10, aspect=True, up=True), (500, 50)),
+    ],
+)
+def test_scale_fit(params, expected):
+    assert IV.scale_fit(**params) == expected
 
 
 class IvInitMixin:
