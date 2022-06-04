@@ -429,7 +429,7 @@ class IV:
         See also: https://sw.kovidgoyal.net/kitty/graphics-protocol/?highlight=image#querying-support-and-available-transmission-mediums
         """
         if self.kitty is None:
-            self.kitty = "_G" in self.terminal_request(
+            self.kitty = "OK" in self.terminal_request(
                 "\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\", "\\"
             )
         return self.kitty

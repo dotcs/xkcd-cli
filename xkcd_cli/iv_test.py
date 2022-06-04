@@ -78,6 +78,13 @@ class TestIvInit(IvInitMixin, unittest.TestCase):
         iv = IV(protocol)
         assert iv.protocol is None
 
+    def test_auto_protocol(self):
+        mock_ap = Mock()
+        IV.auto_protocol = mock_ap(return_value="test_protocol")
+        IV("auto")
+
+        mock_ap.assert_called_once()
+
 
 class TestTerminalRequest(IvInitMixin, unittest.TestCase):
     @patch("select.select")
@@ -216,6 +223,32 @@ class TestItermCellSize(IvInitMixin, unittest.TestCase):
 
 class TestShowImage(IvInitMixin, unittest.TestCase):
     png_sample = Path("tests") / "assets" / "1x1.png"
+
+    def test_byte_data(self):
+        iv = IV("kitty")
+
+        iv._show_image_str = Mock()
+        iv._show_image_bytes = Mock()
+
+        with open(self.png_sample, "rb") as f:
+            data = f.read()
+
+        iv.show_image(data)
+
+        iv._show_image_bytes.assert_called_once()
+        iv._show_image_str.assert_not_called()
+
+    def test_str_data(self):
+        iv = IV("kitty")
+
+        iv._show_image_str = Mock()
+        iv._show_image_bytes = Mock()
+
+        fp = self.png_sample.as_posix()
+        iv.show_image(fp)
+
+        iv._show_image_bytes.assert_not_called()
+        iv._show_image_str.assert_called_once()
 
     def test_fitwidth(self):
         iv = IV("kitty")
@@ -536,3 +569,103 @@ class TestImageDataAndMetadata:
         assert img_format == "JPEG"
         assert img_height == 1
         assert img_width == 1
+
+
+class TestItermDetection(IvInitMixin, unittest.TestCase):
+    def test_iterm_positive(self):
+        iv = IV("iterm")
+
+        assert iv.iterm is None
+        iv.iterm_cell_size = Mock(return_value=(100, 100))
+
+        ret = iv.have_iterm()
+
+        assert ret == True
+        assert iv.iterm == True
+
+    def test_iterm_negative(self):
+        iv = IV("iterm")
+
+        assert iv.iterm is None
+        iv.iterm_cell_size = Mock(return_value=(-1, -1))
+
+        ret = iv.have_iterm()
+
+        assert ret == False
+        assert iv.iterm == False
+
+
+class TestKittyDetection(IvInitMixin, unittest.TestCase):
+    def test_kitty_positive(self):
+        iv = IV("kitty")
+
+        assert iv.kitty is None
+        iv.terminal_request = Mock(return_value="\x1b_Gi=31;OK\x1b\\")
+
+        ret = iv.have_kitty()
+
+        assert ret == True
+        assert iv.kitty == True
+
+    def test_kitty_negative(self):
+        iv = IV("kitty")
+
+        assert iv.kitty is None
+        iv.terminal_request = Mock(return_value="")
+
+        ret = iv.have_kitty()
+
+        assert ret == False
+        assert iv.kitty == False
+
+    def test_extended_kitty_positive(self):
+        iv = IV("iterm")
+
+        assert iv.kitty is None
+        assert iv.ex_kitty is None
+        iv.terminal_request = Mock(return_value="\x1b_Gi=31;OK\x1b\\")
+
+        ret = iv.have_extended_kitty()
+
+        assert ret == True
+        assert iv.kitty == True
+        assert iv.ex_kitty == True
+
+    def test_extended_kitty_negative(self):
+        iv = IV("iterm")
+
+        assert iv.kitty is None
+        assert iv.ex_kitty is None
+        iv.terminal_request = Mock(
+            return_value="\x1b_Gi=31;EBADPNG:Not a PNG file\x1b\\"
+        )
+
+        ret = iv.have_extended_kitty()
+
+        assert ret == False
+        assert iv.kitty is None
+        assert iv.ex_kitty == False
+
+
+class TestSixelDetection(IvInitMixin, unittest.TestCase):
+    def test_sixel_positive(self):
+        iv = IV("sixel")
+
+        assert iv.iterm is None
+        iv.terminal_request = Mock(return_value="\x1b[?62;4;22c")
+
+        ret = iv.have_sixel()
+
+        assert ret == True
+        assert iv.sixel == True
+
+    def test_sixel_negative(self):
+        iv = IV("sixel")
+
+        assert iv.iterm is None
+        iv.terminal_request = Mock(return_value="\x1b[?62;c")
+
+        ret = iv.have_sixel()
+
+        assert ret == False
+        assert iv.sixel == False
