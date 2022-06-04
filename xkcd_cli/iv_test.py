@@ -178,7 +178,38 @@ class TestTerminalCellSize(IvInitMixin, unittest.TestCase):
 
         iv.terminal_request = Mock(return_value="")
 
-        height, width = iv.terminal_pixel_size()
+        height, width = iv.terminal_cell_size()
+        assert height == -1
+        assert width == -1
+
+
+class TestItermCellSize(IvInitMixin, unittest.TestCase):
+    def test_happy_path(self):
+        iv = IV("iterm")
+
+        iv.terminal_request = Mock(return_value="\x1b]1337;ReportCellSize=1200;800\x07")
+
+        height, width = iv.iterm_cell_size()
+        assert height == 1200
+        assert width == 800
+
+    def test_with_scaling_factor(self):
+        iv = IV("iterm")
+
+        iv.terminal_request = Mock(
+            return_value="\x1b]1337;ReportCellSize=1200;800;2\x07"
+        )
+
+        height, width = iv.iterm_cell_size()
+        assert height == 1200 * 2
+        assert width == 800 * 2
+
+    def test_escape_code_not_working(self):
+        iv = IV("iterm")
+
+        iv.terminal_request = Mock(return_value="")
+
+        height, width = iv.iterm_cell_size()
         assert height == -1
         assert width == -1
 
@@ -443,6 +474,41 @@ class TestKittyShowFile(IvInitMixin, unittest.TestCase):
             b"\033_Ga=T,f=100,q=2,m=0;"
         )  # expect sticking with f=100 mode, no fallback
         assert result.endswith(b"\033\\")
+
+
+class TestItermShowFile(IvInitMixin, unittest.TestCase):
+    png_sample = Path("tests") / "assets" / "1x1.png"
+    jpg_sample = Path("tests") / "assets" / "1x1.jpg"
+
+    def test_with_png(self):
+        iv = IV("iterm")
+
+        with open(self.jpg_sample, "rb") as f:
+            data = f.read()
+
+        out = io.BytesIO()  # mock output to which response will be written
+        iv.iterm_show_file(data, out=out)
+
+        out.seek(0)
+        result = out.read()
+        assert result.startswith(b"\033]1337;File=inline=1:")
+        assert result.endswith(b"\007")
+
+    def test_with_png_with_extras(self):
+        iv = IV("iterm")
+
+        with open(self.jpg_sample, "rb") as f:
+            data = f.read()
+
+        out = io.BytesIO()  # mock output to which response will be written
+        iv.iterm_show_file(data, out=out, C=1, width=100)
+
+        out.seek(0)
+        result = out.read()
+        assert result.startswith(
+            b"\033]1337;File=inline=1;doNotMoveCursor=1;width=100:"
+        )
+        assert result.endswith(b"\007")
 
 
 class TestImageDataAndMetadata:

@@ -198,6 +198,7 @@ class IV:
         self,
         data: bytes,
         debug: bool = False,
+        out: BinaryIO = sys.stdout.buffer,
         **params: int,
     ):
         data = standard_b64encode(data)
@@ -208,10 +209,10 @@ class IV:
             extras += ";doNotMoveCursor=1"
         if "width" in params:
             extras += f";width={params['width']}"
-        sys.stdout.buffer.write(
+        out.write(
             b"\033]1337;File=inline=1" + bytes(extras, "ascii") + b":" + data + b"\007"
         )
-        sys.stdout.flush()
+        out.flush()
 
     def _setup_libsixel_or_fallback(self):  # pragma: no cover
         try:
