@@ -416,6 +416,57 @@ class TestSixelShowFile(IvInitMixin, unittest.TestCase):
         assert b"Could not find" in out.read()
 
 
+class TestKittyShowFile(IvInitMixin, unittest.TestCase):
+    png_sample = Path("tests") / "assets" / "1x1.png"
+    jpg_sample = Path("tests") / "assets" / "1x1.jpg"
+
+    def test_with_png(self):
+        iv = IV("kitty")
+
+        with open(self.png_sample, "rb") as f:
+            data = f.read()
+
+        out = io.BytesIO()  # mock output to which response will be written
+        iv.kitty_show_file(data, out=out)
+
+        out.seek(0)
+        result = out.read()
+        assert result.startswith(b"\033_Ga=T,f=100,q=2,m=0;")
+        assert result.endswith(b"\033\\")
+
+    def test_with_jpg_without_jpg_support(self):
+        iv = IV("kitty")
+
+        with open(self.jpg_sample, "rb") as f:
+            data = f.read()
+
+        out = io.BytesIO()  # mock output to which response will be written
+        iv.kitty_show_file(data, out=out)
+
+        out.seek(0)
+        result = out.read()
+        assert result.startswith(
+            b"\033_Ga=T,f=24,q=2,s=1,v=1,m=0;"
+        )  # expect fallback to f=24, RGB data
+        assert result.endswith(b"\033\\")
+
+    def test_with_jpg_with_jpg_support(self):
+        iv = IV("kitty")
+
+        with open(self.jpg_sample, "rb") as f:
+            data = f.read()
+
+        out = io.BytesIO()  # mock output to which response will be written
+        iv.kitty_show_file(data, extended=True, out=out)
+
+        out.seek(0)
+        result = out.read()
+        assert result.startswith(
+            b"\033_Ga=T,f=100,q=2,m=0;"
+        )  # expect sticking with f=100 mode, no fallback
+        assert result.endswith(b"\033\\")
+
+
 class TestImageDataAndMetadata:
     png_sample = Path("tests") / "assets" / "1x1.png"
     jpg_sample = Path("tests") / "assets" / "1x1.jpg"

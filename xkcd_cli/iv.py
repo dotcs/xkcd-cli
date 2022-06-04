@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from io import BufferedWriter
 import shutil
 import sys
 import termios
@@ -149,6 +148,7 @@ class IV:
         data: bytes,
         debug: bool = False,
         extended: Optional[bool] = None,
+        out: BinaryIO = sys.stdout.buffer,
         **params: int,
     ) -> None:
         if extended or (extended is None and self.ex_kitty):
@@ -191,8 +191,8 @@ class IV:
             w += f"m={int(s<len(data))};".encode("ascii")
             w += data[s - chunk_size : s]
             w += b"\033\\"
-            sys.stdout.buffer.write(w)
-            sys.stdout.flush()
+            out.write(w)
+            out.flush()
 
     def iterm_show_file(
         self,
