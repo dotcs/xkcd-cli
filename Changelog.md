@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [#3](https://github.com/dotcs/xkcd-cli/pull/3): Multiple terminals and image protocols are now auto-detected . This includes kitty, iterm and terminals that support the [`sixel` graphic format](https://en.wikipedia.org/wiki/Sixel). Thanks to [MatanZ](https://github.com/MatanZ) for this contribution.
+- `--width` CLI option to explicitly set the width of the rendered graphic
+
+### Changed
+
+- Removed CLI option `--use-kitty` in favor of `--terminal-graphics`.
+- Removed CLI option `--kitty-scale-up` in favor of `--terminal-scale-up`.
+
+
 ## [1.0.0] - 2022-04-17
 ### Added
 
