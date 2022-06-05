@@ -1,5 +1,11 @@
 # xkcd cli tool
 
+<p align="center">
+<img alt="Lint and static code analysis on develop branch" src="https://github.com/dotcs/xkcd-cli/actions/workflows/lint-sca.yaml/badge.svg?branch=develop"/>
+<a href="https://github.com/dotcs/xkcd-cli/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"/></a>
+<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"/></a>
+</p>
+
 Get your daily dose of [xkcd] directly from the terminal! 🤩
 
 https://user-images.githubusercontent.com/3976183/163873282-f586f312-2643-4b77-af79-89e344091b2f.mp4
@@ -94,6 +100,28 @@ To update the cache manually, use the following command
 $ xkcd update-cache
 ```
 
+## Development
+
+This repository manages Python dependencies with [poetry].
+To install the package and its dependencies run:
+
+```console
+$ poetry install
+```
+
+The code is formatted with [black] and type checked with [pyright].
+
+Then run the the following commands to lint and test the code:
+
+```console
+$ poetry run python -m black --check --diff .   # tests for any lint issues
+$ poetry run python -m black .                  # auto-formats the code
+
+$ poetry run python -m pyright                  # runs static code analysis
+
+$ poetry run python -m pytest --cov="xkcd_cli/" --cov-report term --cov-report html   # run tests with code coverage report
+```
+
 
 [fzf]: https://github.com/junegunn/fzf
 [kitty]: https://sw.kovidgoyal.net/kitty/
@@ -103,3 +131,6 @@ $ xkcd update-cache
 [explain-xkcd-categories]: https://www.explainxkcd.com/wiki/index.php/Category:Comics_by_topic
 [pypi-repo]: https://pypi.org/project/dcs-xkcd-cli/
 [pipx]: https://pypa.github.io/pipx/
+[poetry]: https://python-poetry.org/
+[black]: https://black.readthedocs.io/en/stable/
+[pyright]: https://github.com/Microsoft/pyright
