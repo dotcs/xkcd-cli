@@ -374,17 +374,17 @@ class IV:
         Use proprietary ANSI escape code to termine cell dimensions in iTerm.
         See also: https://iterm2.com/documentation-escape-codes.html
         """
-        size_ret = self.terminal_request("\x1b]1337;ReportCellSize\x07", "\x07").split(
-            ";"
-        )
+        size_ret = self.terminal_request(
+            "\x1b]1337;ReportCellSize\x07", "\x07\\"
+        ).split(";")
         if len(size_ret) < 3 or not size_ret[1].startswith("ReportCellSize="):
             cell_width, cell_height = -1, -1
         else:
             cell_height, cell_width = float(size_ret[1].split("=")[1]), float(
-                size_ret[2].strip("\07")
+                size_ret[2].strip("\07\\\x1b")
             )
             if len(size_ret) == 4:
-                factor = float(size_ret[3].strip("\07"))
+                factor = float(size_ret[3].strip("\07\\\x1b"))
             else:
                 factor = 1
             cell_height, cell_width = round(cell_height * factor), round(
