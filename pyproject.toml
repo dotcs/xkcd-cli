@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dcs-xkcd-cli"
-version = "1.0.0"
+version = "2.0.0"
 description = "Get your daily dose of xkcd directly from the terminal! 🤩"
 authors = ["dotcs <repositories@dotcs.me>"]
 readme = "Readme.md"
@@ -21,10 +21,13 @@ python = "^3.8"
 beautifulsoup4 = "^4.11"
 requests = "^2.27"
 typer = "^0.4"
+Pillow = "^9.1.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3"
 pyright = "^1.1"
+pytest = "^7.1.2"
+pytest-cov = "^3.0.0"
 
 [tool.poetry.scripts]
 xkcd = "xkcd_cli.xkcd:main"
@@ -32,3 +35,20 @@ xkcd = "xkcd_cli.xkcd:main"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+include = ["xkcd_cli"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+]
+pythonVersion = "3.8"
+pythonPlatform = "Linux"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.coverage.run]
+branch = true
+omit = ["*_test.py"]

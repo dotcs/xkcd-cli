@@ -1,11 +1,19 @@
 # xkcd cli tool
 
+<p align="center">
+<img alt="Lint and static code analysis on develop branch" src="https://github.com/dotcs/xkcd-cli/actions/workflows/lint-sca.yaml/badge.svg?branch=develop"/>
+<a href="https://github.com/dotcs/xkcd-cli/blob/main/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"/></a>
+<a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"/></a>
+</p>
+
 Get your daily dose of [xkcd] directly from the terminal! 🤩
+
+https://user-images.githubusercontent.com/3976183/163873282-f586f312-2643-4b77-af79-89e344091b2f.mp4
 
 [xkcd] is a webcomic created by [Randall Munroe][munroe]. 
 It is a comic of Language, Math, Romance and Sarcasm and a [couple of other categories][explain-xkcd-categories].
 
-If [kitty] is used as the terminal, the xkcd comic will be rendered directly in the terminal, otherwise the default viewer for PNG images is used.
+If [kitty], [iterm] or any terminal that has support for the [sixel] file format is used as the terminal, the xkcd comic will be rendered directly in the terminal, otherwise the default viewer for PNG images is used.
 This tool requires [fzf] to be installed on the machine to filter available comics by their title. 
 
 ## Installation
@@ -64,17 +72,25 @@ $ xkcd show --random
 $ xkcd show --comic-id 207
 ```
 
-### Enforce render optimizations for kitty terminal
+### Upscaling / width of comics
+
+By default images are upscaled to match the terminal dimensions.
+This behavior can be controlled with the `--terminal-scale-up / --no-terminal-scale-up` options.
+Images can be also rendered with an explicit width by using the `--width` CLI option.
 
 ```console
-$ xkcd show --use-kitty
+$ xkcd show --comic-id 207 --no-terminal-scale-up    # disable scaling
+$ xkcd show --comic-id 207 --width 1200              # set explicit width
 ```
 
-Use this command if the auto-detection of the kitty terminal does not work as expected.
-Kitty is auto-detected by inspecting if the `$TERM` variable includes the term `kitty`.
 
-By default the image is upscaled to the terminal width.
-Use the `--no-kitty-scale-up` flag to disable this feature if needed.
+### Disable rendering in terminals
+
+```console
+$ xkcd show --no-terminal-graphics
+```
+
+This command will disable the automatic image protocol detection and directly open the image with the help of `xdg-open` in the default image viewer.
 
 ### Disable or update cache
 
@@ -92,6 +108,28 @@ To update the cache manually, use the following command
 $ xkcd update-cache
 ```
 
+## Development
+
+This repository manages Python dependencies with [poetry].
+To install the package and its dependencies run:
+
+```console
+$ poetry install
+```
+
+The code is formatted with [black] and type checked with [pyright].
+
+Then run the the following commands to lint and test the code:
+
+```console
+$ poetry run python -m black --check --diff .   # tests for any lint issues
+$ poetry run python -m black .                  # auto-formats the code
+
+$ poetry run python -m pyright                  # runs static code analysis
+
+$ poetry run python -m pytest --cov="xkcd_cli/" --cov-report term --cov-report html   # run tests with code coverage report
+```
+
 
 [fzf]: https://github.com/junegunn/fzf
 [kitty]: https://sw.kovidgoyal.net/kitty/
@@ -101,3 +139,8 @@ $ xkcd update-cache
 [explain-xkcd-categories]: https://www.explainxkcd.com/wiki/index.php/Category:Comics_by_topic
 [pypi-repo]: https://pypi.org/project/dcs-xkcd-cli/
 [pipx]: https://pypa.github.io/pipx/
+[iterm]: https://iterm2.com/
+[sixel]: https://en.wikipedia.org/wiki/Sixel
+[poetry]: https://python-poetry.org/
+[black]: https://black.readthedocs.io/en/stable/
+[pyright]: https://github.com/Microsoft/pyright

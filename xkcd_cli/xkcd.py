@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import typer
+from .iv import IV
 
 BASE_URL = "https://xkcd.com"
 ARCHIVE_ENDPOINT = "/archive/"
@@ -32,8 +33,8 @@ def callback():
     This tool fetches xkcd comics from upstream and allows users to grep a comic
     by selecting it in the terminal.
 
-    It relies on fzf for fuzzy searching the comic titles and kitty to render
-    the images in the terminal.
+    It relies on fzf for fuzzy searching the comic titles and a terminal with support
+    for graphics to render the images in the terminal.
     """
     pass
 
@@ -198,29 +199,33 @@ def update_cache(
 
 @app.command()
 def show(
-    use_kitty: bool = typer.Option(
-        "kitty" in os.getenv("TERM", "").lower(),
+    terminal_graphics: bool = typer.Option(
+        True,
         help=(
-            "Defines if the output will be optimized for the kitty terminal by "
-            "rendering the image in the terminal window"
+            "Defines if the output will be displayed in terminal by "
+            "rendering the image in the terminal window if supported."
         ),
     ),
     fzf_cmd: Path = typer.Option(
         shutil.which("fzf") or os.getenv("FZF_CMD"),
         help="Path to the fzf tool",
     ),
-    kitty_cmd: Path = typer.Option(
-        shutil.which("kitty") or os.getenv("KITTY_CMD"),
-        help="Path to the kitty terminal",
+    width: int = typer.Option(
+        -1,
+        help="Defines the target width of the comic when rendered in the terminal.",
     ),
-    kitty_scale_up: bool = typer.Option(
-        True, help="Scales the image up to max possible width if kitty is being used."
+    terminal_scale_up: bool = typer.Option(
+        True,
+        help=(
+            "Scales the image up to max possible width if terminal graphics is being "
+            "used. Does not have any effect if 'width' is set to an explicit value."
+        ),
     ),
     latest: bool = typer.Option(
         False,
-        help="""\
-        Fetches and renders the latest xkcd without going through a selection first.
-        """,
+        help=(
+            "Fetches and renders the latest xkcd without going through a selection first."
+        ),
     ),
     random: bool = typer.Option(False, help="Fetches and renders a random xkcd comic."),
     comic_id: Optional[int] = typer.Option(
@@ -229,10 +234,11 @@ def show(
     ),
     cache: bool = typer.Option(
         True,
-        help="""\
-        Defines if a cache should be used for listing all available xkcd comics.
-        Otherwise calls the xkcd archive endpoint to gather the list of comics
-        (slower).""",
+        help=(
+            "Defines if a cache should be used for listing all available xkcd "
+            "comics. Otherwise calls the xkcd archive endpoint to gather the list "
+            "of comics (slower)."
+        ),
     ),
     cache_filename: Path = typer.Option(
         CACHE_PATH,
@@ -244,6 +250,11 @@ def show(
     """
     Show an individual xkcd comic.
     """
+    iv: Optional[IV] = None
+    if terminal_graphics:
+        iv = IV("auto")
+        if not iv.protocol:
+            terminal_graphics = False
     if cache:
         if not cache_filename.exists():
             # Transparently create cache for the user if cache does not yet exist.
@@ -297,24 +308,25 @@ xkcd upstream.""",
         with open(tmp_img_path, "wb") as f:
             for chunk in r:
                 f.write(chunk)
-        if not use_kitty:
+        if terminal_graphics:
+            assert iv is not None  # safe since iv has been initialized above
+            fitscreen = (
+                width <= 0
+            )  # disable fit to screen if explicit width has been set by user
+            iv.show_image(
+                str(tmp_img_path),
+                w=width,
+                newline=True,
+                fitwidth=fitscreen,
+                fitheight=fitscreen,
+                upscale=terminal_scale_up,
+            )
+        else:
             cmd = [
                 "xdg-open",
                 tmp_img_path,
             ]
             subprocess.run(cmd, stdout=None, stderr=None)
-        else:
-            cmd = [
-                kitty_cmd,
-                "+kitten",
-                "icat",
-                "--align=left",
-                "--scale-up" if kitty_scale_up else None,
-                tmp_img_path,
-            ]
-            # Remove any None values to have a list of PathLike objects
-            cmd_filtered: List[os.PathLike] = list(filter(lambda x: x is not None, cmd))
-            subprocess.run(cmd_filtered)
     typer.echo("\n".join(wrap(comic.subtext, width=TERM_MAX_WIDTH_CHARS)))
 
 
